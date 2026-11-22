@@ -38,7 +38,25 @@ type Brief = {
   profileResolved: boolean;
   profile?: Record<string, unknown>; // minimal twin profile (no name, no URL), kept for training records
   intro?: string; // spoken in the agent's first message when the profile came from LinkedIn
+  summary?: string; // background sent to the voice agent as context (LinkedIn only)
 };
+
+// Background for the voice agent (LinkedIn only). Region and education are left out on purpose: they don't help
+// it ask better questions and they add bias risk. Never used for scoring (the agent is told so).
+function summaryFrom(p: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const role = String(p.role_title ?? "").trim();
+  if (role && role !== "Professional") parts.push(role);
+  for (const k of ["seniority", "industry"] as const) {
+    const v = String(p[k] ?? "").trim();
+    if (v && v !== "Unknown") parts.push(k === "industry" ? `industry: ${v}` : `seniority: ${v}`);
+  }
+  const years = Number(p.tenure_years);
+  if (Number.isFinite(years) && years > 0) parts.push(`${years} years in current role`);
+  const skills = Array.isArray(p.skills) ? (p.skills as unknown[]).map(String).filter(Boolean).slice(0, 8) : [];
+  if (skills.length) parts.push(`skills: ${skills.join(", ")}`);
+  return parts.join("; ");
+}
 
 function introFrom(p: Record<string, unknown>): string {
   const role = String(p.role_title ?? "").trim();
@@ -107,7 +125,10 @@ function startBrief(sessionId: string, linkedinUrl?: string): Brief | null {
       brief.profileSource = source;
       brief.profileResolved = true;
       brief.profile = profile;
-      if (source === "linkedin") brief.intro = introFrom(profile) || undefined;
+      if (source === "linkedin") {
+        brief.intro = introFrom(profile) || undefined;
+        brief.summary = summaryFrom(profile) || undefined;
+      }
       return twinPost<{ predictions: Prediction[] }>("/predict", { profile, guide: { questions: brief.guide } }, 180_000);
     })
     .then((r) => { brief.predictions = r.predictions; brief.status = "ready"; console.log(`[twin] ${sessionId}: brief ready (${brief.profileSource})`); })
@@ -115,7 +136,7 @@ function startBrief(sessionId: string, linkedinUrl?: string): Brief | null {
   return brief;
 }
 
-const publicBrief = (b: Brief) => ({ status: b.status, guide: b.guide, error: b.error, profileSource: b.profileSource, profileResolved: b.profileResolved || b.status !== "pending", intro: b.intro ?? null, answered: b.answers.map((a) => a.questionId) });
+const publicBrief = (b: Brief) => ({ status: b.status, guide: b.guide, error: b.error, profileSource: b.profileSource, profileResolved: b.profileResolved || b.status !== "pending", intro: b.intro ?? null, summary: b.summary ?? null, answered: b.answers.map((a) => a.questionId) });
 
 // POST /api/twin/brief {sessionId, linkedinUrl?} -> {status, guide, profileSource}  (starts prediction on first call)
 export const twinBrief: TwinBrief = (req, res) => {

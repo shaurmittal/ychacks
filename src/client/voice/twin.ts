@@ -2,11 +2,11 @@
 import { api } from "wasp/client/api";
 import type { TwinQuestion } from "./triggers";
 
-type BriefResponse = { status: "pending" | "ready" | "error"; guide: TwinQuestion[]; answered: string[]; error?: string };
+type BriefResponse = { status: "pending" | "ready" | "error"; guide: TwinQuestion[]; answered: string[]; summary: string | null; error?: string };
 
 /** Starts the twin brief for a session and polls until it is ready. Calls onReady(unansweredQuestions) once.
  *  Returns a cancel function. Silently gives up on error (the interview works without the twin). */
-export function watchTwinBrief(sessionId: string, onReady: (questions: TwinQuestion[]) => void): () => void {
+export function watchTwinBrief(sessionId: string, onReady: (questions: TwinQuestion[], summary: string | null) => void): () => void {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const poll = async (attempt: number) => {
@@ -14,7 +14,7 @@ export function watchTwinBrief(sessionId: string, onReady: (questions: TwinQuest
     try {
       const r = await api.post("api/twin/brief", { json: { sessionId }, timeout: 15_000 }).json<BriefResponse>();
       if (stopped) return;
-      if (r.status === "ready") return onReady(r.guide.filter((q) => !r.answered.includes(q.id)));
+      if (r.status === "ready") return onReady(r.guide.filter((q) => !r.answered.includes(q.id)), r.summary);
       if (r.status === "error") return console.warn("[twin] brief failed:", r.error);
     } catch (e) {
       console.warn("[twin] brief unavailable:", e);

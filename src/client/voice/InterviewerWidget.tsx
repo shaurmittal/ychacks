@@ -194,8 +194,14 @@ function LiveInterviewer(p: Props & { agentId: string }) {
     });
     brainRef.current = brain;
     // Lane 05 twin: once predictions are ready, queue the twin questions in the brain (never the predictions).
-    const stopTwin = watchTwinBrief(propsRef.current.sessionId, (questions) => {
-      if (brainRef.current === brain) brain.setTwinQuestions(questions);
+    const stopTwin = watchTwinBrief(propsRef.current.sessionId, (questions, summary) => {
+      if (brainRef.current !== brain) return;
+      brain.setTwinQuestions(questions);
+      if (summary) convRef.current.sendContextualUpdate(
+        `CANDIDATE BACKGROUND (from the LinkedIn profile they chose to share): ${summary}. ` +
+        "Use it only to make your questions and explanations more relevant (e.g. relate to their stack or level). " +
+        "Don't recite it, don't assume skill from it, and never let it influence flag_observation or any judgment of their work.",
+      );
     });
     let lastActivitySignal = 0;
     const unsub = subscribe((e) => {
