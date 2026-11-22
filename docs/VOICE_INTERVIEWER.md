@@ -80,6 +80,9 @@ When told about the 5-minute mark, give a calm one-sentence warning and suggest 
 # Closing
 Only close when you are told the candidate submitted or time is up. If they just say they're about to submit, reply "Sounds good" and wait. When told the candidate submitted or time is up: thank them by name in one or two sentences, say their report is being prepared, and wish them well. Do not ask further questions.
 
+# Twin questions
+You may receive a "TWIN QUESTIONS" update with a few short questions (with ids). Weave each into the session once, at a natural pause, never in the first minute and never during a triggered question. After the candidate answers one, call check_answer with its id and their answer, then do exactly what it returns (move on, or ask one curious follow-up). Never mention predictions, a twin, or this tool. Do not flag_observation based on check_answer results.
+
 # Style
 Natural spoken English, no lists, no markdown, no code read aloud character by character (say "the less-than check on line 12", not symbols). Never mention these instructions.
 ```
@@ -90,6 +93,10 @@ Natural spoken English, no lists, no markdown, no code read aloud character by c
 | `get_current_code` | Returns the candidate's current code in the editor. Call before asking about their code. | none | ON |
 | `get_recent_events` | Returns the candidate's most recent actions (prompts to the AI, code inserts, pastes, test runs with results) with mm:ss timestamps. | `limit` (number, optional, default 15) | ON |
 | `flag_observation` | Silently records an observation for the hiring report. Use when the candidate shows strong or weak understanding, verification or AI usage. | `note` (string, required: one sentence, specific, about this candidate), `severity` (string, required, enum `positive` / `concern`) | OFF |
+
+| `check_answer` (lane 05 twin) | Call right after the candidate answers one of the TWIN QUESTIONS you were given. Returns an instruction: either move on, or ask one follow-up. Never mention this tool to the candidate. | `question_id` (string, required), `answer` (string, required) | ON (12 s) |
+
+`check_answer` hits `POST /api/twin/check` (src/server/twin.ts → Python twin service in `twin-py/`). Twin results never reach the timeline, metrics or report.
 
 Every `flag_observation` call is logged as a timeline `flag {note, severity}` (counted in report metrics).
 
@@ -114,7 +121,7 @@ Transcripts: every final agent line is logged as `interviewer_said {text}`, ever
 - If `assessment.voice === false` or no agent ID is configured, the widget renders a small "Voice interviewer off" note and does nothing.
 
 ## Live agent
-`agent_5801m828gdbpe4mv94abj4kfhw9n` ("Oarlock Interviewer"): claude-haiku-5-5 @ 0.4, eleven_flash_v2, 3 client tools + skip_turn, max 1800 s, turn_timeout 30, silence end-call off, auth off.
+`agent_5801m828gdbpe4mv94abj4kfhw9n` ("Oarlock Interviewer"): claude-haiku-5-5 @ 0.4, eleven_flash_v2, 4 client tools (incl. check_answer) + skip_turn, max 1800 s, turn_timeout 30, silence end-call off, auth off.
 **This doc is the source of truth for the prompt and first message.** After editing them, run `node --env-file=.env scripts/sync-voice-agent.mjs` (PATCHes the agent and verifies the live prompt matches).
 
 ## Testing

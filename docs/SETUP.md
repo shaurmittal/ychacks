@@ -19,6 +19,9 @@ REACT_APP_ELEVENLABS_AGENT_ID=
 ```
 (Check Wasp's client env var prefix and access in its docs.)
 
+## Twin (Expected Parrot, lane 05)
+Optional. Add `EXPECTED_PARROT_API_KEY`, `TWIN_MODEL=gpt-4.1-mini`, `TWIN_MODEL_SERVICE=openai`, `TWIN_URL=http://127.0.0.1:8765` to `.env.server`, then run `cd twin-py && .venv/bin/python -m twin serve --env-file ../.env.server` next to `wasp start`. See `twin-py/README.md`.
+
 ## HTTPS for other people's laptops/phones (mic needs it)
 ```bash
 wasp start

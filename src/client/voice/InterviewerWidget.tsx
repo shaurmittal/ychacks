@@ -6,6 +6,7 @@ import type { Assessment, Problem } from "../../shared/types";
 import { getCode, log, recent, subscribe } from "../timeline/bus";
 import { EVENT_PREFIX, currentCodeBlock, describeEvent, policyText } from "./format";
 import { InterviewerBrain } from "./triggers";
+import { checkTwinAnswer, watchTwinBrief } from "./twin"; // lane 05 twin
 import "./interviewer.css";
 
 type Props = { sessionId: string; assessment: Assessment; problem: Omit<Problem, "hiddenTests">; candidateName: string; minutesLeft: () => number; onEnd?: () => void };
@@ -83,6 +84,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
       if (note) log("flag", { note, severity, source: "interviewer" });
       return "recorded";
     },
+    check_answer: (params: Record<string, unknown>) => checkTwinAnswer(propsRef.current.sessionId, params), // lane 05 twin
   }), []);
 
   const conv = useConversation({
@@ -179,6 +181,10 @@ function LiveInterviewer(p: Props & { agentId: string }) {
       },
     });
     brainRef.current = brain;
+    // Lane 05 twin: once predictions are ready, tell the agent which questions to ask (never the predictions).
+    const stopTwin = watchTwinBrief(propsRef.current.sessionId, (briefing) => {
+      if (brainRef.current === brain) convRef.current.sendContextualUpdate(briefing);
+    });
     let lastActivitySignal = 0;
     const unsub = subscribe((e) => {
       if (brainRef.current !== brain) return;
@@ -197,7 +203,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
         if (doneTalking || now - c.at > CLOSE_MAX_MS) finish();
       }
     }, 1_000);
-    return () => { unsub(); clearInterval(iv); if (brainRef.current === brain) brainRef.current = null; };
+    return () => { stopTwin(); unsub(); clearInterval(iv); if (brainRef.current === brain) brainRef.current = null; };
   }, [connected]);
 
   const speaking = conv.isSpeaking;
