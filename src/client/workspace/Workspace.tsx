@@ -18,7 +18,7 @@ type Ed = Parameters<OnMount>[0];
 type Mon = Parameters<OnMount>[1];
 
 const SNAPSHOT_DEBOUNCE_MS = 3000;
-const GOODBYE_MAX_MS = 25_000;
+const GOODBYE_MAX_MS = 130_000; // lane 05: room for the twin debrief (capped at 100 s) + goodbye; the call ending navigates sooner
 
 export function Workspace(props: {
   assessment: Assessment;

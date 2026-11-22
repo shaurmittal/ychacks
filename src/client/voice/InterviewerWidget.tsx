@@ -86,7 +86,10 @@ function LiveInterviewer(p: Props & { agentId: string }) {
       if (note) log("flag", { note, severity, source: "interviewer" });
       return "recorded";
     },
-    check_answer: (params: Record<string, unknown>) => checkTwinAnswer(propsRef.current.sessionId, params), // lane 05 twin
+    check_answer: (params: Record<string, unknown>) => { // lane 05 twin
+      brainRef.current?.noteTwinAnswered();
+      return checkTwinAnswer(propsRef.current.sessionId, params);
+    },
   }), []);
 
   const conv = useConversation({

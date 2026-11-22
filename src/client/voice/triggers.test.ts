@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TimelineEvent, TimelineKind } from "../../shared/types";
 import { EVENT_PREFIX } from "./format";
-import { InterviewerBrain, QUESTION_GAP_MS, TWIN_START_DELAY_MS, changedLines, isTrivialLine, lineRanges, type TriggerReason } from "./triggers";
+import { DEBRIEF_ANSWER_TIMEOUT_MS, DEBRIEF_MAX_MS, DEBRIEF_NEXT_AFTER_MS, InterviewerBrain, QUESTION_GAP_MS, changedLines, isTrivialLine, lineRanges, type TriggerReason } from "./triggers";
 
 const STARTER = "/** @param {object[]} bookings */\nfunction mergeBookings(bookings) {\n  \n}";
 
@@ -223,40 +223,57 @@ describe("InterviewerBrain", () => {
   });
 });
 
-describe("twin questions (lane 05)", () => {
+describe("twin debrief (lane 05)", () => {
   const QS = [
-    { id: "approach", type: "free_text" as const, text: "How will you approach it?" },
-    { id: "ai_plan", type: "single_choice" as const, text: "How will you use the AI?", options: ["Not at all", "To write most of the solution"] },
+    { id: "approach", type: "free_text" as const, text: "How did you approach it?" },
+    { id: "ai_plan", type: "single_choice" as const, text: "How did you use the AI?", options: ["Not at all", "To write most of the solution"] },
   ];
+  const result = { passed: 13, total: 13, failures: [], ms: 5, hidden: true };
 
-  it("asks each twin question once, spaced by the question gap, with its id for check_answer", () => {
+  it("never asks twin questions mid-session", () => {
     const s = setup();
     s.brain.setTwinQuestions(QS);
-    s.advance(TWIN_START_DELAY_MS - 5_000);
-    expect(s.trig).toHaveLength(0); // opening is left alone
-    s.advance(7_000);
+    s.advance(QUESTION_GAP_MS * 3);
+    expect(s.logged.filter((l) => l.reason === "twin")).toHaveLength(0);
+  });
+
+  it("after submit: asks each question once, back to back, then closes", () => {
+    const s = setup();
+    s.brain.setTwinQuestions(QS);
+    s.advance(5_000);
+    s.emit("submit", { code: "x", result });
+    s.advance(2_000);
     expect(s.trig).toHaveLength(1);
-    expect(s.trig[0]).toContain(EVENT_PREFIX);
     expect(s.trig[0]).toContain('question_id "approach"');
-    expect(s.logged[0].reason).toBe("twin");
-    s.advance(QUESTION_GAP_MS - 5_000);
-    expect(s.trig).toHaveLength(1); // throttled
-    s.advance(10_000);
+    expect(s.trig[0]).toContain("wrap-up");
+    expect(s.closing).toHaveLength(0);
+    s.advance(4_000);
+    s.brain.noteTwinAnswered();
+    s.advance(DEBRIEF_NEXT_AFTER_MS + 2_000);
     expect(s.trig).toHaveLength(2);
     expect(s.trig[1]).toContain('question_id "ai_plan"');
     expect(s.trig[1]).toContain("Not at all | To write most of the solution");
-    s.advance(QUESTION_GAP_MS * 2);
-    expect(s.logged.filter((l) => l.reason === "twin")).toHaveLength(2); // never repeats
+    s.advance(3_000);
+    s.brain.noteTwinAnswered();
+    s.advance(DEBRIEF_NEXT_AFTER_MS + 2_000);
+    expect(s.logged.map((l) => l.reason)).toEqual(["twin", "twin", "close"]);
+    expect(s.closing).toEqual(["submit"]);
   });
 
-  it("waits while the agent is speaking", () => {
+  it("moves on when an answer never comes, and the whole debrief is capped", () => {
     const s = setup();
-    s.setSpeaking(true);
     s.brain.setTwinQuestions(QS);
-    s.advance(TWIN_START_DELAY_MS + 5_000);
-    expect(s.trig).toHaveLength(0);
-    s.setSpeaking(false);
+    s.emit("submit", { code: "x", result });
+    s.advance(DEBRIEF_ANSWER_TIMEOUT_MS + 3_000);
+    expect(s.trig).toHaveLength(2);
+    s.advance(DEBRIEF_MAX_MS);
+    expect(s.closing).toEqual(["submit"]);
+  });
+
+  it("without twin questions, submit closes immediately as before", () => {
+    const s = setup();
+    s.emit("submit", { code: "x", result });
     s.advance(2_000);
-    expect(s.trig).toHaveLength(1);
+    expect(s.logged.map((l) => l.reason)).toEqual(["close"]);
   });
 });

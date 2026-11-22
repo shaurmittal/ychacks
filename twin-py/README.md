@@ -102,9 +102,10 @@ wasp start                                                                      
 ```
 
 How it fits together:
-1. When the voice call connects, the widget calls `POST /api/twin/brief`. The server builds 4 questions from the problem (approach, AI plan, confidence, edge cases) and the twin predicts answers through Expected Parrot. This takes about 10–40 s.
-2. When the brief is ready, the agent receives a "TWIN QUESTIONS" contextual update. It gets the questions only, never the predictions.
-3. After the candidate answers a question, the agent calls the client tool `check_answer`, which hits `POST /api/twin/check` and then `/score` on the service (fast judge, instant). The tool returns "move on" or "ask one follow-up".
-4. `GET /api/twin/:sessionId` shows predicted vs actual answers, for the demo or a future Twin Reveal.
+1. When the candidate clicks Start, the server begins the twin brief. If they pasted a LinkedIn URL, it first runs a Fiber `/profile` lookup. Then the twin predicts answers to 3 wrap-up questions (approach, AI use, difficulty) through Expected Parrot, in about 10 s.
+2. If Fiber found the profile, the interviewer opens with a one-line LinkedIn intro.
+3. When the candidate submits, the interviewer brain runs a debrief. It asks each twin question in turn, the agent calls `check_answer` (`POST /api/twin/check`, then `/score`), and the agent either acknowledges the answer or asks one follow-up. Then it says goodbye. The debrief is capped at 100 s.
+4. Each answer is appended to `data/twin_training.jsonl` with the minimal profile, the question, the prediction, the actual answer and the surprise score. It contains no name or URL. This is saved as research data and is not fed back into the twin.
+5. `GET /api/twin/:sessionId` shows predicted vs actual answers.
 
 The twin uses a baseline profile (a typical entry-level candidate), because Overwatch collects no profile data. Twin results are never written to the timeline, the metrics or the report. If the service is down, the interview runs as normal.

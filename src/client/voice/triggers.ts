@@ -6,7 +6,10 @@ import type { TestResult, TimelineEvent } from "../../shared/types";
 import { EVENT_PREFIX, clip, codeBlock, currentCodeBlock, describeResult, mmss } from "./format";
 
 export const QUESTION_GAP_MS = 75_000; // min gap between triggered questions
-export const TWIN_START_DELAY_MS = 60_000; // lane 05: leave the opening (greeting + intro) alone
+// Lane 05 twin debrief: after submit, ask the twin questions back to back, then close.
+export const DEBRIEF_NEXT_AFTER_MS = 3_000; // quiet time after the answer/follow-up before the next question
+export const DEBRIEF_ANSWER_TIMEOUT_MS = 25_000; // no check_answer by then: move on
+export const DEBRIEF_MAX_MS = 100_000; // whole debrief cap (2-minute demo)
 export const INSERT_DELAY_MS = 15_000; // give them a moment to test after inserting
 export const CANDIDATE_TALK_GRACE_MS = 8_000;
 export const CODE_SNAPSHOT_GAP_MS = 60_000;
@@ -97,6 +100,7 @@ export class InterviewerBrain {
   private closed = false;
   private closeReason: "submit" | "time" = "submit";
   private twinQueue: TwinQuestion[] = [];
+  private debrief: { startedAt: number; askedAt: number; answeredAt: number; result?: TestResult } | null = null;
   triggersSent = 0;
 
   constructor(private d: BrainDeps) {
@@ -107,26 +111,32 @@ export class InterviewerBrain {
   private left() { return Math.max(0, Math.round(this.d.minutesLeft())); }
 
   private enqueue(p: Omit<Pending, "createdAt">) {
-    if (this.closed && p.kind !== "close") return;
+    if ((this.closed || this.debrief) && p.kind !== "close") return; // debrief: only twin questions, then close
     if (this.pending && PRIORITY[this.pending.kind] > PRIORITY[p.kind]) return;
     this.pending = { ...p, createdAt: this.d.now() };
   }
 
   private resetBaseline() { this.baseline = this.d.getCode(); }
 
-  /** Lane 05: queue twin questions; each is asked once, through the normal throttle. */
+  /** Lane 05: twin questions, asked as a short debrief right after the candidate submits. */
   setTwinQuestions(qs: TwinQuestion[]) { this.twinQueue = [...qs]; }
+  /** check_answer was called for the current debrief question. */
+  noteTwinAnswered() { if (this.debrief) this.debrief.answeredAt = this.d.now(); }
+  get twinRemaining() { return this.twinQueue.length; }
+  get inDebrief() { return this.debrief !== null; }
 
   private twinTrigger(): Built | null {
     const q = this.twinQueue.shift();
-    if (!q) return null;
+    if (!q || !this.debrief) return null;
+    const first = this.debrief.askedAt === 0;
     const how = q.type === "single_choice" ? ` For check_answer, map their answer to the closest of: ${q.options!.join(" | ")}.`
       : q.type === "scale" ? ` For check_answer, pass just the number (${q.scale_min}-${q.scale_max}).` : "";
+    const lead = first
+      ? `The candidate just submitted their solution${this.debrief.result ? ` (${describeResult(this.debrief.result)})` : ""}. Before saying goodbye, ask ${this.twinQueue.length + 1} very quick wrap-up questions, one at a time. Don't comment on the test results. Start with a few words like "Quick wrap-up before you go", then ask:`
+      : "Next wrap-up question, ask it now:";
     return {
-      summary: `Twin question "${q.id}"`,
-      text: `${EVENT_PREFIX} Ask the candidate this question now, briefly and in your own words: "${q.text}" ` +
-        `When they answer, call check_answer with question_id "${q.id}" and their answer, then do what it returns.${how} ` +
-        `Don't mention predictions. ${this.left()} minutes remain.`,
+      summary: `Twin debrief question "${q.id}"`,
+      text: `${EVENT_PREFIX} ${lead} "${q.text}" When they answer, call check_answer with question_id "${q.id}" and their answer, then do what it returns, keeping any follow-up to one short sentence.${how} Don't mention predictions.`,
     };
   }
 
@@ -209,8 +219,16 @@ export class InterviewerBrain {
     }
   }
 
-  private close(reason: "submit" | "time", result?: TestResult) {
+  private close(reason: "submit" | "time", result?: TestResult, force = false) {
     if (this.closed) return;
+    if (!force && this.twinQueue.length && !this.debrief) {
+      this.closeReason = reason;
+      this.insert = null;
+      this.pending = null;
+      this.debrief = { startedAt: this.d.now(), askedAt: 0, answeredAt: 0, result };
+      return; // tick() runs the debrief, then closes
+    }
+    if (this.debrief) result = result ?? this.debrief.result;
     this.closed = true;
     this.closeReason = reason;
     this.insert = null;
@@ -267,6 +285,28 @@ export class InterviewerBrain {
     const now = this.d.now();
     const left = this.d.minutesLeft();
 
+    const db = this.debrief;
+    if (db && !this.closed) {
+      const waitingForAnswer = db.askedAt > 0 && db.answeredAt < db.askedAt;
+      const timedOut = waitingForAnswer && now - db.askedAt > DEBRIEF_ANSWER_TIMEOUT_MS;
+      const settled = !this.d.agentSpeaking() && now - Math.max(db.answeredAt, this.lastCandidateSpeechAt) >= DEBRIEF_NEXT_AFTER_MS;
+      const ready = db.askedAt === 0 || timedOut || (!waitingForAnswer && settled);
+      if (now - db.startedAt > DEBRIEF_MAX_MS || (ready && !this.twinQueue.length)) {
+        if (db.askedAt === 0 || timedOut || settled || now - db.startedAt > DEBRIEF_MAX_MS) this.close(this.closeReason, db.result, true);
+      } else if (ready && !this.pending && !this.d.agentSpeaking()) {
+        const built = this.twinTrigger();
+        if (built) {
+          this.d.sendTrigger(built.text);
+          this.d.logTrigger("twin", built.summary);
+          this.triggersSent += 1;
+          db.askedAt = now;
+          this.lastQuestionAt = now;
+        }
+      }
+      this.fire(now);
+      return;
+    }
+
     if (!this.closed && left <= 0) this.close("time");
     if (!this.closed && !this.warned5 && left <= 5 && left > 0) {
       this.warned5 = true;
@@ -294,10 +334,6 @@ export class InterviewerBrain {
       if (ins && !ins.queued && now - ins.at >= INSERT_DELAY_MS) {
         ins.queued = true;
         this.enqueue({ kind: "insert", build: () => this.insertTrigger(ins) });
-      }
-
-      if (!this.pending && this.twinQueue.length && now - this.start >= TWIN_START_DELAY_MS && now - this.lastQuestionAt >= QUESTION_GAP_MS) {
-        this.enqueue({ kind: "twin", build: () => this.twinTrigger() });
       }
 
       if (

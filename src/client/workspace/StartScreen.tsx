@@ -65,6 +65,7 @@ export function StartScreen(props: {
           <li>Solve one coding problem in the editor. <strong>Run tests</strong> checks the visible tests; <strong>Submit</strong> also runs hidden ones.</li>
           <li>{POLICY_DETAIL[assessment.aiPolicy]}</li>
           {assessment.voice && <li>A voice interviewer joins the call. It may ask about your approach and the code you accept from the AI. Think out loud.</li>}
+          {assessment.voice && <li>After you submit, the interviewer asks 3 quick wrap-up questions. Your answers to those (without your name or LinkedIn URL) are kept as research data and may be shared with research partners such as Expected Parrot. They don't affect your report.</li>}
           <li>When you submit (or time runs out) you get a report on problem solving, AI usage, code quality and communication.</li>
         </ul>
 

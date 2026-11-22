@@ -26,7 +26,7 @@ function projectRoot(): string {
   const i = cwd.indexOf(`${path.sep}.wasp${path.sep}`);
   return i >= 0 ? cwd.slice(0, i) : cwd;
 }
-const DATA_DIR = process.env.OARLOCK_DATA_DIR ?? path.join(projectRoot(), "data");
+export const DATA_DIR = process.env.OARLOCK_DATA_DIR ?? path.join(projectRoot(), "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
 function load(): Db {
