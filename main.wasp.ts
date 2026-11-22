@@ -8,6 +8,7 @@ import { listAssessments, createAssessment, getAssessment, listAssessmentSession
 import { createSession, postEvents, submitSession, getSession } from "./src/server/sessions" with { type: "ref" };
 import { apiMiddleware } from "./src/server/middleware" with { type: "ref" };
 import { assist } from "./src/server/assist" with { type: "ref" };
+import { twinBrief, twinCheck, twinGet } from "./src/server/twin" with { type: "ref" }; // lane 05 twin
 import { VoiceHarnessPage } from "./src/client/voice/VoiceHarnessPage" with { type: "ref" };
 
 export default app({
@@ -34,5 +35,8 @@ export default app({
     api("POST", "/api/sessions/:id/submit", submitSession),
     api("GET", "/api/sessions/:id", getSession),
     api("POST", "/api/assist", assist),
+    api("POST", "/api/twin/brief", twinBrief), // lane 05 twin
+    api("POST", "/api/twin/check", twinCheck),
+    api("GET", "/api/twin/:sessionId", twinGet),
   ],
 });
