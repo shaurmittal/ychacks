@@ -22,7 +22,7 @@
 .oliv-dot.err { background: #cf222e; }
 .oliv-dot.off { background: #afb8c1; }
 @keyframes oliv-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(9, 105, 218, 0.45); } 50% { box-shadow: 0 0 0 5px rgba(9, 105, 218, 0); } }
-.oliv-caption { font-size: 13px; color: #1f2328; max-height: 4.4em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.oliv-caption { font-size: 13px; color: #1f2328; max-height: 16em; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; } /* full text, scrolls if very long */
 .oliv-caption.muted { color: #6e7781; }
 .oliv-err { display: flex; align-items: center; gap: 8px; color: #cf222e; font-size: 12px; }
 .oliv-err span { flex: 1; }

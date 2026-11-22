@@ -13,7 +13,6 @@ import { runTests } from "./runner";
 import { clearSaved, saveCode } from "./persist";
 import { TestResults } from "./TestResults";
 import { Timer } from "./Timer";
-import { POLICY_LABEL } from "./format";
 
 type Ed = Parameters<OnMount>[0];
 type Mon = Parameters<OnMount>[1];
@@ -176,7 +175,6 @@ export function Workspace(props: {
           <span className="brand">Overwatch</span>
           <span className="ws-sep" />
           <span className="ws-title">{assessment.title || problem.title}</span>
-          <span className="pill pill-muted">{POLICY_LABEL[assessment.aiPolicy]}</span>
         </div>
         <Timer deadline={deadline.current} onExpire={() => void submit("time_up")} />
         <div className="ws-top-right">
