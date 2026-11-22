@@ -1,5 +1,6 @@
 // Lane 01 owns this file. In-browser timeline bus: every event is kept in memory,
 // pushed to live subscribers, and batched to POST /api/sessions/:id/events every 2 s.
+import { config } from "wasp/client";
 import { api } from "wasp/client/api";
 import type { TimelineEvent, TimelineKind } from "../../shared/types";
 
@@ -65,12 +66,22 @@ export function setLatestCode(code: string): void {
 export async function flush(): Promise<void> {
   if (inflight) await inflight;
   if (!sessionId || queue.length === 0) return;
+  if (sessionId.startsWith("dev-")) {
+    queue = []; // dev mock session (API not merged yet): nothing to send to
+    return;
+  }
   const batch = queue;
   queue = [];
   inflight = api
     .post(`api/sessions/${encodeURIComponent(sessionId)}/events`, { json: batch })
     .then(() => undefined)
     .catch((err: unknown) => {
+      const status = (err as { response?: Response }).response?.status ?? 0;
+      // 4xx (bad session etc.) won't fix itself; keep retrying network errors and 5xx.
+      if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+        console.error(`[timeline] server rejected ${batch.length} events (${status}), dropping them`, err);
+        return;
+      }
       console.warn("[timeline] flush failed, will retry", err);
       queue = batch.concat(queue);
     })
@@ -88,9 +99,8 @@ export function stopTimeline(): void {
 }
 
 function beaconFlush(): void {
-  if (!sessionId || queue.length === 0) return;
-  const base = (api as unknown as { _options?: { prefixUrl?: string } })._options?.prefixUrl ?? serverUrl();
-  const url = `${String(base).replace(/\/$/, "")}/api/sessions/${encodeURIComponent(sessionId)}/events`;
+  if (!sessionId || queue.length === 0 || sessionId.startsWith("dev-")) return;
+  const url = `${config.apiUrl}/api/sessions/${encodeURIComponent(sessionId)}/events`;
   const body = new Blob([JSON.stringify(queue)], { type: "application/json" });
   // sendBeacon with JSON blob triggers CORS preflight cross-origin; fall back to keepalive fetch.
   try {
@@ -99,8 +109,4 @@ function beaconFlush(): void {
   } catch {
     if (navigator.sendBeacon?.(url, body)) queue = [];
   }
-}
-
-function serverUrl(): string {
-  return (import.meta as unknown as { env?: Record<string, string> }).env?.REACT_APP_API_URL ?? "http://localhost:3001";
 }
