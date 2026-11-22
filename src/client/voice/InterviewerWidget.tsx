@@ -172,6 +172,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
       now: () => Date.now(),
       sendContext: (t) => convRef.current.sendContextualUpdate(t),
       sendTrigger: (t) => convRef.current.sendUserMessage(t),
+      logTrigger: (reason, summary) => log("interviewer_trigger", { reason, summary }),
       getCode,
       minutesLeft: () => propsRef.current.minutesLeft(),
       agentSpeaking: () => speakingRef.current,
