@@ -15,7 +15,10 @@ export const MIN_NEW_LINES_STRUCTURAL = 2; // …or fewer if they include a new 
 const STALE_MS = 180_000;
 const BIG_PASTE_CHARS = 120;
 
-export type TriggerReason = "insert" | "fails" | "code" | "warn5" | "close";
+export type TriggerReason = "insert" | "fails" | "code" | "warn5" | "close" | "twin";
+
+/** Lane 05: a twin question the interviewer should ask (see src/server/twin.ts). */
+export type TwinQuestion = { id: string; text: string; type: "free_text" | "single_choice" | "scale"; options?: string[]; scale_min?: number; scale_max?: number };
 
 export type BrainDeps = {
   now: () => number;
@@ -29,7 +32,7 @@ export type BrainDeps = {
   onClosing: (reason: "submit" | "time") => void;
 };
 
-const PRIORITY: Record<TriggerReason, number> = { close: 4, warn5: 3, insert: 2, fails: 2, code: 1 };
+const PRIORITY: Record<TriggerReason, number> = { close: 4, warn5: 3, insert: 2, fails: 2, twin: 1, code: 1 };
 type Built = { text: string; summary: string };
 type Pending = { kind: TriggerReason; createdAt: number; build: () => Built | null };
 
@@ -92,6 +95,7 @@ export class InterviewerBrain {
   private warned5 = false;
   private closed = false;
   private closeReason: "submit" | "time" = "submit";
+  private twinQueue: TwinQuestion[] = [];
   triggersSent = 0;
 
   constructor(private d: BrainDeps) {
@@ -108,6 +112,22 @@ export class InterviewerBrain {
   }
 
   private resetBaseline() { this.baseline = this.d.getCode(); }
+
+  /** Lane 05: queue twin questions; each is asked once, through the normal throttle. */
+  setTwinQuestions(qs: TwinQuestion[]) { this.twinQueue = [...qs]; }
+
+  private twinTrigger(): Built | null {
+    const q = this.twinQueue.shift();
+    if (!q) return null;
+    const how = q.type === "single_choice" ? ` For check_answer, map their answer to the closest of: ${q.options!.join(" | ")}.`
+      : q.type === "scale" ? ` For check_answer, pass just the number (${q.scale_min}-${q.scale_max}).` : "";
+    return {
+      summary: `Twin question "${q.id}"`,
+      text: `${EVENT_PREFIX} Ask the candidate this question now, briefly and in your own words: "${q.text}" ` +
+        `When they answer, call check_answer with question_id "${q.id}" and their answer, then do what it returns.${how} ` +
+        `Don't mention predictions. ${this.left()} minutes remain.`,
+    };
+  }
 
   /** The agent asked something on its own: counts toward the throttle, and resets "new code since last question". */
   noteAgentSaid(text: string) {
@@ -273,6 +293,10 @@ export class InterviewerBrain {
       if (ins && !ins.queued && now - ins.at >= INSERT_DELAY_MS) {
         ins.queued = true;
         this.enqueue({ kind: "insert", build: () => this.insertTrigger(ins) });
+      }
+
+      if (!this.pending && this.twinQueue.length && now - this.lastQuestionAt >= QUESTION_GAP_MS) {
+        this.enqueue({ kind: "twin", build: () => this.twinTrigger() });
       }
 
       if (

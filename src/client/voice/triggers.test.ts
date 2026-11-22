@@ -222,3 +222,39 @@ describe("InterviewerBrain", () => {
     expect(snaps()).toBe(2);
   });
 });
+
+describe("twin questions (lane 05)", () => {
+  const QS = [
+    { id: "approach", type: "free_text" as const, text: "How will you approach it?" },
+    { id: "ai_plan", type: "single_choice" as const, text: "How will you use the AI?", options: ["Not at all", "To write most of the solution"] },
+  ];
+
+  it("asks each twin question once, spaced by the question gap, with its id for check_answer", () => {
+    const s = setup();
+    s.brain.setTwinQuestions(QS);
+    s.advance(2_000);
+    expect(s.trig).toHaveLength(1);
+    expect(s.trig[0]).toContain(EVENT_PREFIX);
+    expect(s.trig[0]).toContain('question_id "approach"');
+    expect(s.logged[0].reason).toBe("twin");
+    s.advance(QUESTION_GAP_MS - 5_000);
+    expect(s.trig).toHaveLength(1); // throttled
+    s.advance(10_000);
+    expect(s.trig).toHaveLength(2);
+    expect(s.trig[1]).toContain('question_id "ai_plan"');
+    expect(s.trig[1]).toContain("Not at all | To write most of the solution");
+    s.advance(QUESTION_GAP_MS * 2);
+    expect(s.logged.filter((l) => l.reason === "twin")).toHaveLength(2); // never repeats
+  });
+
+  it("waits while the agent is speaking", () => {
+    const s = setup();
+    s.setSpeaking(true);
+    s.brain.setTwinQuestions(QS);
+    s.advance(5_000);
+    expect(s.trig).toHaveLength(0);
+    s.setSpeaking(false);
+    s.advance(2_000);
+    expect(s.trig).toHaveLength(1);
+  });
+});

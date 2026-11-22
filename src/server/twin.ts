@@ -20,10 +20,11 @@ type Brief = {
   answers: { questionId: string; answer: string | number; surprise: Surprise }[];
   error?: string;
   startedAt: number;
+  profileSource: "linkedin" | "baseline";
 };
 
-// Baseline twin: no personal data exists in Oarlock, so the twin models a typical candidate
-// for this OA. A Fiber AI profile (phase 2) would replace this with role/seniority/industry.
+// Baseline twin used when the candidate gives no LinkedIn URL (or Fiber finds no match).
+// With a LinkedIn URL, Fiber AI returns role/seniority/industry/tenure/region/education/skills only.
 const BASELINE_PROFILE = {
   role_title: "Software engineering candidate",
   seniority: "Entry level",
@@ -55,36 +56,44 @@ async function twinPost<T>(path: string, body: unknown, timeoutMs: number): Prom
   return data;
 }
 
-function startBrief(sessionId: string): Brief | null {
+async function profileFor(linkedinUrl?: string): Promise<{ profile: Record<string, unknown>; source: Brief["profileSource"] }> {
+  if (!linkedinUrl) return { profile: BASELINE_PROFILE, source: "baseline" };
+  try {
+    const r = await twinPost<{ found: boolean; profile?: Record<string, unknown> }>("/profile", { linkedinUrl }, 45_000);
+    if (r.found && r.profile) return { profile: r.profile, source: "linkedin" };
+  } catch (e) {
+    console.warn(`[twin] Fiber lookup failed, using baseline: ${(e as Error)?.message ?? e}`);
+  }
+  return { profile: BASELINE_PROFILE, source: "baseline" };
+}
+
+function startBrief(sessionId: string, linkedinUrl?: string): Brief | null {
   const existing = briefs.get(sessionId);
   if (existing && existing.status !== "error") return existing;
   const session = getSession(sessionId);
   const assessment = session && getAssessment(session.assessmentId);
   const problem = assessment && getProblem(assessment.problemId);
   if (!problem) return null;
-  const brief: Brief = { status: "pending", guide: guideFor(problem.title), predictions: [], answers: [], startedAt: Date.now() };
+  const brief: Brief = { status: "pending", guide: guideFor(problem.title), predictions: [], answers: [], startedAt: Date.now(), profileSource: "baseline" };
   briefs.set(sessionId, brief);
-  twinPost<{ predictions: Prediction[] }>("/predict", { profile: BASELINE_PROFILE, guide: { questions: brief.guide } }, 180_000)
-    .then((r) => { brief.predictions = r.predictions; brief.status = "ready"; console.log(`[twin] ${sessionId}: brief ready`); })
+  profileFor(linkedinUrl)
+    .then(({ profile, source }) => {
+      brief.profileSource = source;
+      return twinPost<{ predictions: Prediction[] }>("/predict", { profile, guide: { questions: brief.guide } }, 180_000);
+    })
+    .then((r) => { brief.predictions = r.predictions; brief.status = "ready"; console.log(`[twin] ${sessionId}: brief ready (${brief.profileSource})`); })
     .catch((e) => { brief.status = "error"; brief.error = String(e?.message ?? e); console.error(`[twin] ${sessionId}: ${brief.error}`); });
   return brief;
 }
 
-// What the voice agent is told once predictions are ready (questions only; predictions stay server-side).
-function agentBriefing(b: Brief): string {
-  const qs = b.guide.map((q) => {
-    const how = q.type === "single_choice" ? ` (answer must be one of: ${q.options!.join(" | ")})` : q.type === "scale" ? ` (answer: a number ${q.scale_min}-${q.scale_max})` : "";
-    return `- id "${q.id}": ${q.text}${how}`;
-  }).join("\n");
-  return `TWIN QUESTIONS. During the session, at natural pauses (never while they are mid-thought, at most one per check-in), ask each of these once in your own words:\n${qs}\nAfter the candidate answers one, call check_answer with its id and their answer (for choice questions pick the closest option text; for scale questions the number). Follow the instruction it returns. Never mention predictions or a twin to the candidate.`;
-}
+const publicBrief = (b: Brief) => ({ status: b.status, guide: b.guide, error: b.error, profileSource: b.profileSource, answered: b.answers.map((a) => a.questionId) });
 
-const publicBrief = (b: Brief) => ({ status: b.status, guide: b.guide, error: b.error, answered: b.answers.map((a) => a.questionId), briefing: b.status === "ready" ? agentBriefing(b) : null });
-
-// POST /api/twin/brief {sessionId} -> {status, guide, briefing?}  (starts prediction on first call)
+// POST /api/twin/brief {sessionId, linkedinUrl?} -> {status, guide, profileSource}  (starts prediction on first call)
 export const twinBrief: TwinBrief = (req, res) => {
-  const sessionId = String((req.body ?? {}).sessionId ?? "");
-  const b = startBrief(sessionId);
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const sessionId = String(body.sessionId ?? "");
+  const linkedinUrl = typeof body.linkedinUrl === "string" && /linkedin\.com\/in\//i.test(body.linkedinUrl) ? body.linkedinUrl.slice(0, 200) : undefined;
+  const b = startBrief(sessionId, linkedinUrl);
   if (!b) { res.status(404).json({ error: "Unknown session." }); return; }
   res.json(publicBrief(b));
 };

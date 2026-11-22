@@ -4,6 +4,7 @@ import { useParams } from "react-router";
 import type { Assessment } from "../../shared/types";
 import { initTimeline, log } from "../timeline/bus";
 import { createSession, errorMessage, fetchAssessment, type PublicProblem } from "../workspace/client";
+import { startTwinBrief } from "../voice/twin"; // lane 05 twin
 import { loadCode, loadSaved, saveSession, type SavedSession } from "../workspace/persist";
 import { StartScreen } from "../workspace/StartScreen";
 import { Workspace } from "../workspace/Workspace";
@@ -36,7 +37,7 @@ export function TakePage() {
     };
   }, [assessmentId]);
 
-  async function start(candidateName: string, voiceOk: boolean) {
+  async function start(candidateName: string, voiceOk: boolean, linkedinUrl?: string) {
     if (!data) return;
     setBusy(true);
     setStartError(null);
@@ -44,6 +45,7 @@ export function TakePage() {
       const s = await createSession(assessmentId, candidateName);
       const saved: SavedSession = { sessionId: s.id, candidateName: s.candidateName || candidateName, startedAt: s.startedAt, voiceOk };
       saveSession(assessmentId, saved);
+      if (data.assessment.voice && voiceOk) startTwinBrief(s.id, linkedinUrl); // lane 05 twin: predict while they read the problem
       initTimeline(s.id);
       log("session_start", {
         assessmentId,
@@ -112,5 +114,5 @@ export function TakePage() {
     );
   }
 
-  return <StartScreen assessment={data.assessment} problem={data.problem} busy={busy} error={startError} onStart={(n, v) => void start(n, v)} />;
+  return <StartScreen assessment={data.assessment} problem={data.problem} busy={busy} error={startError} onStart={(n, v, li) => void start(n, v, li)} />;
 }

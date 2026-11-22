@@ -182,9 +182,9 @@ function LiveInterviewer(p: Props & { agentId: string }) {
       },
     });
     brainRef.current = brain;
-    // Lane 05 twin: once predictions are ready, tell the agent which questions to ask (never the predictions).
-    const stopTwin = watchTwinBrief(propsRef.current.sessionId, (briefing) => {
-      if (brainRef.current === brain) convRef.current.sendContextualUpdate(briefing);
+    // Lane 05 twin: once predictions are ready, queue the twin questions in the brain (never the predictions).
+    const stopTwin = watchTwinBrief(propsRef.current.sessionId, (questions) => {
+      if (brainRef.current === brain) brain.setTwinQuestions(questions);
     });
     let lastActivitySignal = 0;
     const unsub = subscribe((e) => {

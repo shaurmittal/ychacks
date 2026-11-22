@@ -11,13 +11,15 @@ export function StartScreen(props: {
   problem: PublicProblem;
   busy: boolean;
   error: string | null;
-  onStart: (name: string, voiceOk: boolean) => void;
+  onStart: (name: string, voiceOk: boolean, linkedinUrl?: string) => void;
 }) {
   const { assessment, problem, busy, error } = props;
   const [name, setName] = useState(() => localStorage.getItem("oarlock:name") ?? "");
   const [consent, setConsent] = useState(false);
   const [mic, setMic] = useState<MicState>("unknown");
-  const ready = name.trim().length > 0 && consent && !busy;
+  const [linkedin, setLinkedin] = useState(""); // lane 05 twin: optional, never stored client-side
+  const linkedinOk = !linkedin.trim() || /linkedin\.com\/in\/[^/?#\s]+/i.test(linkedin);
+  const ready = name.trim().length > 0 && consent && linkedinOk && !busy;
 
   async function requestMic(): Promise<MicState> {
     try {
@@ -39,7 +41,7 @@ export function StartScreen(props: {
       if (m !== "granted") return;
     }
     localStorage.setItem("oarlock:name", name.trim());
-    props.onStart(name.trim(), m === "granted");
+    props.onStart(name.trim(), m === "granted", linkedin.trim() || undefined);
   }
 
   return (
@@ -70,6 +72,18 @@ export function StartScreen(props: {
           <span>Your name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ada Lovelace" maxLength={80} autoFocus onKeyDown={(e) => e.key === "Enter" && void start()} />
         </label>
+
+        {assessment.voice && (
+          <label className="field">
+            <span>LinkedIn profile URL <span className="muted">(optional)</span></span>
+            <input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://www.linkedin.com/in/your-name" maxLength={200} />
+            <small className="muted">
+              {linkedinOk
+                ? "If you add it, we look up your public professional profile (role, seniority, industry, tenure, region, education, skills) through Fiber AI so the interviewer can tailor a few questions. No contact details are requested, and it is never used in your report."
+                : "That doesn't look like a LinkedIn profile URL (linkedin.com/in/…)."}
+            </small>
+          </label>
+        )}
 
         <label className="check">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
