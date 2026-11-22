@@ -11,11 +11,12 @@ The interviewer is a **public** ElevenLabs agent. The browser only needs its ID 
    - **LLM:** a fast, capable model (e.g. Claude Haiku / Gemini Flash). Temperature ~0.4.
    - **Dynamic variables:** the client always sends all of them (table below). If the dashboard asks for placeholder test values, put anything.
 3. **Tools → Client tools**: add the 3 tools in *Client tools* below (name, description, parameters exactly as written; **Wait for response = ON** for `get_current_code` and `get_recent_events`).
-4. **Tools → System tools**: enable **Skip turn** (lets it stay quiet while the candidate mutters while coding). Do **not** enable End call (the app ends the call).
+4. **Tools → System tools**: enable **Skip turn** (lets it stay quiet when there's nothing useful to say, e.g. the candidate muttering while coding). Do **not** enable End call (the app ends the call).
 5. **Voice:** a calm, professional voice. **Turbo/Flash** TTS model for latency.
 6. **Advanced / Conversation**
    - **Max conversation duration: 1800 s** (default 600 s would cut a 25-min OA).
-   - **Turn timeout:** the maximum allowed (the agent shouldn't nag a candidate who is silently coding).
+   - **Turn timeout: -1** (disabled: the agent never re-engages just because the candidate went quiet; silent coding is normal).
+   - **Turn eagerness: patient.**
    - **Silence end-call timeout:** disabled (-1).
    - Interruptions: ON.
 7. **Security**: authentication OFF (public agent). Add allowed hosts for localhost and the tunnel/deploy host if the dashboard asks.
@@ -68,7 +69,8 @@ Tools:
 - Never give away the solution, the bug, or hidden test contents. Hint only by asking ("What happens if two bookings end at the same time?"), never by telling.
 - Never point out a bug or missing requirement they haven't found themselves (don't say "the invalid-booking rule is still missing"). At most ask about an input that would exercise it, and record what you noticed with flag_observation.
 - If their answer is vague or wrong, ask at most ONE short follow-up to pin it down. If it is good, acknowledge it in a few words ("Makes sense, go ahead.") and stop: let them get back to coding. Never chain more than two questions in a row, and never tell them step by step what to type or run. After acknowledging a good answer, don't open a new topic yourself: new questions come from what you are told about their work, or from the candidate talking to you.
-- Do not ask more than one question roughly every minute unless they are talking with you. Silence while they code is good; use Skip turn when there is nothing useful to say.
+- Do not ask more than one question roughly every minute unless they are talking with you.
+- Silence while they code is normal and good. Never ask whether they are there, still working, stuck or need help, and never check in just because time has passed. Speak only when (a) the candidate talks to you, (b) an "[OARLOCK EVENT]" message asks you to, or (c) for the 5-minute warning and the close. Otherwise stay silent; use Skip turn if you are prompted with nothing useful to say. Twin questions (below) follow the same rule: weave them into a turn you already have (e.g. after the candidate finishes talking to you), never as an unprompted check-in.
 - Keep every turn under ~25 words unless answering a clarifying question.
 
 # Clarifying questions
@@ -104,12 +106,14 @@ Every `flag_observation` call is logged as a timeline `flag {note, severity}` (c
 Passive context (`sendContextualUpdate`, the agent just knows it):
 - prompt to the AI (text), AI reply (code block count), each test run (passed/total + failing test names), AI code inserted / pasted (the code), plain pastes, periodic code snapshot when it changed (max every 60 s), minutes left.
 
-Triggers (`sendUserMessage` with the `[OARLOCK EVENT]` prefix, the agent speaks now). All are throttled to **one every 75 s**, never while the agent is speaking or within 8 s of the candidate talking; the latest pending trigger waits and fires as soon as allowed:
+**Silence alone never triggers anything** (no "are you still there?" check-ins).
+
+Triggers (`sendUserMessage` with the `[OARLOCK EVENT]` prefix, the agent speaks now). Each one sent is also logged as a timeline `interviewer_trigger {reason: "insert"|"fails"|"code"|"warn5"|"close", summary}` (e.g. "AI code inserted (lines 4–12), not tested") for the report's Interview log. All are throttled to **one every 75 s**, never while the agent is speaking or within 8 s of the candidate talking; the latest pending trigger waits and fires as soon as allowed:
 | Trigger | When | Instruction (contains the real code / results) |
 | --- | --- | --- |
 | AI insert | 15 s after an `insert` or AI-sourced `paste` | If no test run since: ask one specific edge-case question about the inserted code. If they tested: ask them to explain a specific part of it. |
 | Repeated failures | 2+ consecutive failing test runs | Ask what they think is going wrong in a specific failing case, without giving the answer. |
-| Silence | no candidate activity or speech for 2 min | Brief check-in referencing their current code. |
+| Code progress | the candidate wrote ≥ 4 meaningful new/changed lines (or ≥ 2 including a new function/branch/loop) since the interviewer last asked anything; code unchanged for 5 s (not mid-typing). Braces, blanks, comments and AI-inserted lines don't count | One specific question about the new lines; the event includes them with editor line numbers. |
 | 5-minute warning | `minutesLeft() <= 5` (once, bypasses throttle) | One-sentence time warning. |
 | Submit / time-up | `submit` event or `minutesLeft() <= 0` (bypasses throttle) | Thank + close. The widget ends the call after the agent finishes (max 25 s) and calls `onEnd`. |
 
@@ -121,7 +125,7 @@ Transcripts: every final agent line is logged as `interviewer_said {text}`, ever
 - If `assessment.voice === false` or no agent ID is configured, the widget renders a small "Voice interviewer off" note and does nothing.
 
 ## Live agent
-`agent_5801m828gdbpe4mv94abj4kfhw9n` ("Oarlock Interviewer"): claude-haiku-5-5 @ 0.4, eleven_flash_v2, 4 client tools (incl. check_answer) + skip_turn, max 1800 s, turn_timeout 30, silence end-call off, auth off.
+`agent_5801m828gdbpe4mv94abj4kfhw9n` ("Oarlock Interviewer"): claude-haiku-5-5 @ 0.4, eleven_flash_v2, 4 client tools (incl. check_answer) + skip_turn, max 1800 s, turn_timeout -1 (off), turn_eagerness patient, silence end-call off, auth off.
 **This doc is the source of truth for the prompt and first message.** After editing them, run `node --env-file=.env scripts/sync-voice-agent.mjs` (PATCHes the agent and verifies the live prompt matches).
 
 ## Testing
