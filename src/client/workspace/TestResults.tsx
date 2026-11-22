@@ -8,7 +8,7 @@ export function TestResults({ running, result }: { running: boolean; result: Tes
         <span>Test results</span>
         {result && !running && (
           <span className={result.passed === result.total ? "badge badge-pass" : "badge badge-fail"}>
-            {result.passed}/{result.total} passed · {result.ms} ms
+            {result.passed}/{result.total} passed · {Math.round(result.ms)} ms
           </span>
         )}
         {running && <span className="badge">Running…</span>}

@@ -5,6 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Assist } from "wasp/server/api";
 import type { AiPolicy } from "../shared/types";
 import { getProblem } from "../shared/problems";
+import { policyForSession, problemIdForSession } from "./store";
 import { POLICIES, TIMEOUT_MS, buildSystemPrompt, sanitiseMessages } from "./assistPrompt";
 
 let client: Anthropic | null = null;
@@ -17,9 +18,12 @@ function getClient(): Anthropic | null {
 
 export const assist: Assist = async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const policy: AiPolicy = POLICIES.includes(body.policy as AiPolicy) ? (body.policy as AiPolicy) : "hints";
+  // Policy and problem come from the session's assessment; the body is only a fallback for unknown sessions.
+  const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
+  const bodyPolicy: AiPolicy = POLICIES.includes(body.policy as AiPolicy) ? (body.policy as AiPolicy) : "hints";
+  const policy: AiPolicy = policyForSession(sessionId) ?? bodyPolicy;
   const code = typeof body.code === "string" ? body.code : "";
-  const problemId = typeof body.problemId === "string" ? body.problemId : "";
+  const problemId = problemIdForSession(sessionId) ?? (typeof body.problemId === "string" ? body.problemId : "");
   const messages = sanitiseMessages(body.messages);
 
   if (!messages.length || messages[messages.length - 1].role !== "user") {

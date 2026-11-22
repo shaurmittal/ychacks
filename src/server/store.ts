@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import type { Assessment, Report, Session, TestResult, TimelineEvent } from "../shared/types";
+import type { AiPolicy, Assessment, Report, Session, TestResult, TimelineEvent } from "../shared/types";
 import { problems } from "../shared/problems";
 
 type Db = {
@@ -163,4 +163,15 @@ export function saveSubmission(sessionId: string, sub: Submission): void {
 }
 export function getSubmission(sessionId: string): Submission | undefined {
   return db.submissions[sessionId];
+}
+
+/** The AI policy the company set for this session's assessment (server-side source of truth). */
+export function policyForSession(sessionId: string): AiPolicy | undefined {
+  const s = db.sessions[sessionId];
+  return s ? db.assessments[s.assessmentId]?.aiPolicy : undefined;
+}
+/** The problem this session is for (so the client can't swap problems either). */
+export function problemIdForSession(sessionId: string): string | undefined {
+  const s = db.sessions[sessionId];
+  return s ? db.assessments[s.assessmentId]?.problemId : undefined;
 }
