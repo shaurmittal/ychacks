@@ -118,122 +118,64 @@ function mergeBookings(bookings) {
   ],
 };
 
-// Reference sliding-window limiter, used only to generate expected output for the performance test.
-function referenceLimiter(limit: number, windowMs: number) {
-  const hist = new Map<string, number[]>();
-  return {
-    allow(user: string, now: number): boolean {
-      const ts = hist.get(user) ?? [];
-      while (ts.length && ts[0] <= now - windowMs) ts.shift();
-      hist.set(user, ts);
-      if (ts.length >= limit) return false;
-      ts.push(now);
-      return true;
-    },
-  };
-}
+const kw = (name: string, k: number, expected: number): TestCase => ({ name, args: [k], expected });
 
-function limiterCase(name: string, limit: number, windowMs: number, calls: [string, number][], expected?: boolean[]): TestCase {
-  if (!expected) {
-    const lim = referenceLimiter(limit, windowMs);
-    expected = calls.map(([u, t]) => lim.allow(u, t));
-  }
-  return { name, args: [limit, windowMs, calls], expected };
-}
+const knightWays: Problem = {
+  id: "knight-ways",
+  title: "Knight's corner walk",
+  functionName: "knightWays",
+  statementMd: `# Knight's corner walk
 
-const perfCalls: [string, number][] = Array.from({ length: 10_000 }, (_, i) => [`user${i % 7}`, i * 3]);
-
-const rateLimiter: Problem = {
-  id: "rate-limiter",
-  title: "Sliding-window rate limiter",
-  functionName: "createLimiter",
-  statementMd: `# Sliding-window rate limiter
-
-Your API gateway needs a per-user rate limiter. Implement \`createLimiter(limit, windowMs)\` which returns an object with one method:
-
-\`\`\`js
-allow(userId, nowMs) // → true if the request is allowed, false if denied
-\`\`\`
+A knight starts on the **bottom-left corner (a1)** of a standard **8×8 chessboard**.
+Return the number of different ways it can reach the **top-right corner (h8)** in **exactly \`k\` moves**.
 
 ## Rules
-- A user may make at most \`limit\` **allowed** requests in any window of \`windowMs\` milliseconds.
-- The window is **sliding**, not fixed buckets: a request at \`nowMs\` looks back over \`(nowMs - windowMs, nowMs]\`.
-- **Denied requests don't count** toward the limit.
-- Each user is limited independently.
-- For a given user, \`nowMs\` never decreases between calls.
-- It should stay fast with many requests (think 10,000+ calls).
+- A knight moves in an L: two squares in one direction and one square perpendicular (up to 8 options).
+- It must stay on the board on every move.
+- Squares may be revisited, including the start and the target: only the position **after the last move** has to be h8.
+- Two ways are different if their sequences of squares differ.
+- The answer can be huge: return it **modulo 1,000,000,007**.
+- If \`k < 0\`, return \`0\`.
 
-## Example
+## Examples
 \`\`\`js
-const limiter = createLimiter(2, 1000);
-limiter.allow("ada", 0);    // true
-limiter.allow("ada", 500);  // true
-limiter.allow("ada", 900);  // false (2 allowed requests in the last 1000 ms)
-limiter.allow("ada", 1100); // true  (the request at 0 has left the window)
-limiter.allow("bob", 1100); // true  (bob has his own limit)
+knightWays(6);  // → 108   (6 is the fewest moves that works)
+knightWays(7);  // → 0
+knightWays(0);  // → 0     (a1 is not h8)
 \`\`\`
+
+\`k\` can be as large as 1000, so plain recursion over every path will be far too slow.
 `,
   starterCode: `/**
- * Create a per-user sliding-window rate limiter.
+ * Ways for a knight to go from a1 to h8 on an 8x8 board in exactly k moves.
  *
- * @param {number} limit     Max allowed requests per user in any window.
- * @param {number} windowMs  Window length in milliseconds.
- * @returns {{ allow(userId: string, nowMs: number): boolean }}
- *   allow() returns true if the request is allowed. A request at nowMs
- *   considers allowed requests in (nowMs - windowMs, nowMs].
- *   Denied requests don't count. nowMs is non-decreasing per user.
+ * @param {number} k  number of moves (may be 0, may be up to 1000; negative -> 0)
+ * @returns {number}  the count modulo 1_000_000_007
  */
-function createLimiter(limit, windowMs) {
+function knightWays(k) {
   // your code here
 }
 `,
   visibleTests: [
-    limiterCase("under limit", 3, 1000, [["ada", 0], ["ada", 100], ["ada", 200]], [true, true, true]),
-    limiterCase("hits limit", 2, 1000, [["ada", 0], ["ada", 10], ["ada", 20]], [true, true, false]),
-    limiterCase(
-      "window slides",
-      2,
-      1000,
-      [["ada", 0], ["ada", 500], ["ada", 900], ["ada", 1100], ["ada", 1400], ["ada", 1600]],
-      [true, true, false, true, false, true],
-    ),
-    limiterCase(
-      "two users are independent",
-      1,
-      1000,
-      [["ada", 0], ["bob", 0], ["ada", 500], ["bob", 1200], ["ada", 1200]],
-      [true, true, false, true, true],
-    ),
+    kw("fewest moves (k = 6)", 6, 108),
+    kw("odd k is impossible", 7, 0),
+    kw("zero moves", 0, 0),
+    kw("k = 8", 8, 5124),
   ],
   hiddenTests: [
-    limiterCase("exact window boundary", 1, 1000, [["ada", 0], ["ada", 999], ["ada", 1000]], [true, false, true]),
-    limiterCase(
-      "denied requests don't count",
-      2,
-      1000,
-      [["ada", 0], ["ada", 100], ["ada", 200], ["ada", 300], ["ada", 1050], ["ada", 1150]],
-      [true, true, false, false, true, true],
-    ),
-    limiterCase("limit 0 always denies", 0, 1000, [["ada", 0], ["ada", 5000]], [false, false]),
-    limiterCase(
-      "burst then long gap",
-      3,
-      1000,
-      [["ada", 0], ["ada", 1], ["ada", 2], ["ada", 3], ["ada", 4], ["ada", 100000], ["ada", 100001], ["ada", 100002], ["ada", 100003]],
-      [true, true, true, false, false, true, true, true, false],
-    ),
-    limiterCase(
-      "many users",
-      1,
-      100,
-      [["u1", 0], ["u2", 0], ["u3", 0], ["u1", 50], ["u2", 100], ["u3", 150], ["u4", 150], ["u1", 150]],
-      [true, true, true, false, true, true, true, true],
-    ),
-    limiterCase("performance: 10k requests", 40, 1000, perfCalls),
+    kw("too few moves", 4, 0),
+    kw("k = 10", 10, 198364),
+    kw("k = 12", 12, 7316404),
+    kw("needs modulo (k = 20)", 20, 359473177),
+    kw("k = 30", 30, 272218004),
+    kw("k = 50", 50, 425822642),
+    kw("k = 100", 100, 474009958),
+    kw("negative k", -1, 0),
+    kw("performance: k = 1000", 1000, 288675524),
   ],
 };
 
-export const problems: Problem[] = [mergeBookings, rateLimiter];
+export const problems: Problem[] = [mergeBookings, knightWays];
 
 export function getProblem(id: string): Problem | undefined {
   return problems.find((p) => p.id === id);

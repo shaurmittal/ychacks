@@ -65,6 +65,10 @@ function persist(): void {
 }
 
 function seedPractice(): void {
+  // Drop practice assessments whose problem was removed (e.g. the old rate limiter).
+  for (const [id, a] of Object.entries(db.assessments)) {
+    if (a.practice && id.startsWith("practice-") && !problems.some((p) => p.id === a.problemId)) delete db.assessments[id];
+  }
   for (const p of problems) {
     const id = `practice-${p.id}`;
     if (db.assessments[id]) continue;

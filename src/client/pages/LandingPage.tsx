@@ -7,7 +7,7 @@ import { Shell } from "../report/ui";
 
 const BLURB: Record<string, { level: string; text: string }> = {
   "merge-bookings": { level: "Easy–medium", text: "Merge overlapping meeting-room bookings into busy intervals per room. The AI gets a draft right fast; the edge cases decide it." },
-  "rate-limiter": { level: "Medium", text: "Build a sliding-window API rate limiter. Window boundaries and denied requests are where pasted code breaks." },
+  "knight-ways": { level: "Medium", text: "Count the ways a knight can walk from a1 to h8 in exactly k moves. Brute-force DFS works for small k; k = 1000 needs DP." },
 };
 
 export function LandingPage() {

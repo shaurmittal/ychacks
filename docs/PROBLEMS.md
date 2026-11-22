@@ -7,12 +7,10 @@ Given an array of bookings `{start: "HH:MM", end: "HH:MM", room: string}`, retur
 - Visible tests (4): basic overlap; back-to-back; two rooms; unsorted input.
 - Hidden tests (6): empty array → `{}`; invalid booking ignored; room with only invalid bookings omitted; fully nested interval; identical duplicates; times like "09:05" vs "9:05" (input is always zero-padded; test that string comparison of padded times works but minutes math does too).
 
-## 2. `rateLimiter` — Sliding-window API limiter (medium)
-Implement `createLimiter(limit, windowMs)` returning `{ allow(userId, nowMs) => boolean }`. A user may make at most `limit` allowed requests in any window of `windowMs` ms (sliding, not fixed buckets). Denied requests don't count. Timestamps for a user are non-decreasing.
-- Visible tests (4): under limit; hits limit; window slides; two users independent.
-- Hidden tests (6): exactly at window boundary (request at `t0 + windowMs` is allowed — window is `(now - windowMs, now]`); denied requests don't count; limit 0 → always false; burst then long gap; many users; 10k requests performance (< 200 ms).
+## 2. `knightWays` — Knight's corner walk (medium, DP / DFS + memo)
+`knightWays(k)`: number of ways a knight can go from a1 to h8 on an 8×8 board in exactly `k` moves (squares may repeat), modulo 1,000,000,007; `k < 0` → 0. Fewest moves is 6 (108 ways); odd `k` → 0. Plain DFS passes small `k`; hidden tests go up to `k = 1000`, so it needs DP over (moves, square). Expected values were generated with an independent DP.
 
 ## Test runner rules
-- Client (`runner.worker.ts`): build the function with `new Function(code + "\nreturn " + functionName)` inside a Web Worker; for `rateLimiter` tests, each test is a small script of calls (`args` = `[limit, windowMs, [[user, t], ...]]`, `expected` = array of booleans). Deep-equal results. Kill the worker after 2 s → failure "timeout".
+- Client (`runner.worker.ts`): build the function with `new Function(code + "\nreturn " + functionName)` inside a Web Worker; Deep-equal results. Kill the worker after 2 s → failure "timeout".
 - Server (`grader.ts`): same logic with `node:vm` (`timeout: 2000`) for hidden tests on submit. Hidden test names/inputs never go to the client; the client only sees counts and generic failure messages ("hidden test 3 failed").
 - Starter code: function signature + JSDoc only.
