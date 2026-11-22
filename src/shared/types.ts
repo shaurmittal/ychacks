@@ -5,10 +5,12 @@ export type Assessment = { id: string; title: string; company: string; problemId
 export type TestResult = { passed: number; total: number; failures: { name: string; message: string }[]; ms: number; hidden: boolean };
 export type TimelineKind =
   | "session_start" | "code" | "prompt" | "ai_reply" | "insert" | "paste"
-  | "test_run" | "submit" | "interviewer_said" | "candidate_said" | "flag" | "session_end";
+  | "test_run" | "submit" | "interviewer_said" | "candidate_said" | "flag" | "session_end"
+  | "interviewer_trigger";
 export type TimelineEvent = { id?: number; sessionId: string; at: string; kind: TimelineKind; data: Record<string, unknown> };
 // data shapes: code {code}  prompt {text}  ai_reply {text, codeBlocks: string[]}  insert {code}  paste {text, fromAi: boolean}
 // test_run {result: TestResult}  submit {code, result: TestResult}  interviewer_said/candidate_said {text}  flag {note, severity: "positive"|"concern"}
+// interviewer_trigger {reason: "insert"|"fails"|"code"|"warn5"|"close", summary} (why the voice interviewer was prompted to speak)
 export type Session = { id: string; assessmentId: string; candidateName: string; startedAt: string; endedAt?: string; finalCode?: string; reportReady: boolean };
 export type Metrics = {
   durationMin: number; finalPassRate: number; hiddenPassRate: number; timeToFirstPassMin: number | null;

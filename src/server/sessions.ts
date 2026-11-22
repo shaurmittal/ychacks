@@ -6,11 +6,11 @@ import * as store from "./store";
 import { grade } from "./grader";
 import { generateReport, isGenerating, scheduleReport } from "./report";
 
-const KINDS: string[] = [
+const KINDS: TimelineKind[] = [
   "session_start", "code", "prompt", "ai_reply", "insert", "paste",
   "test_run", "submit", "interviewer_said", "candidate_said", "flag", "session_end",
-  "interviewer_trigger", // lane 03: {reason, summary} — why the interviewer is about to speak
-] satisfies (TimelineKind | "interviewer_trigger")[];
+  "interviewer_trigger", // lane 03: {reason, summary}: why the interviewer is about to speak
+];
 
 export const createSession: CreateSession = (req, res) => {
   const { assessmentId, candidateName } = (req.body ?? {}) as { assessmentId?: string; candidateName?: string };
@@ -24,7 +24,7 @@ export const postEvents: PostEvents = (req, res) => {
   if (!store.getSession(id)) return void res.status(404).json({ error: "Session not found." });
   const body = req.body as unknown;
   const list = (Array.isArray(body) ? body : [body]) as TimelineEvent[];
-  const valid = list.filter((e) => e && KINDS.includes(e.kind as string));
+  const valid = list.filter((e) => e && KINDS.includes(e.kind));
   store.addEvents(id, valid);
   res.json({ ok: true, added: valid.length });
 };
