@@ -4,7 +4,7 @@ import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Assessment, Problem } from "../../shared/types";
 import { getCode, log, recent, subscribe } from "../timeline/bus";
-import { EVENT_PREFIX, describeEvent, policyText } from "./format";
+import { EVENT_PREFIX, currentCodeBlock, describeEvent, policyText } from "./format";
 import { InterviewerBrain } from "./triggers";
 import "./interviewer.css";
 
@@ -71,7 +71,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
   const startMsRef = useRef(Date.now());
 
   const clientTools = useMemo(() => ({
-    get_current_code: () => getCode() || "(the editor is empty)",
+    get_current_code: () => currentCodeBlock(getCode()),
     get_recent_events: (params: Record<string, unknown>) => {
       const n = Math.min(40, Math.max(1, Number(params?.limit) || 15));
       const lines = recent(500).filter((e) => e.kind !== "code").slice(-n).map((e) => describeEvent(e, startMsRef.current));

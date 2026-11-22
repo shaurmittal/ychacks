@@ -1,7 +1,7 @@
 // Lane 03: turns real timeline events into agent context + throttled "ask now" triggers.
 // Pure logic (no React, no ElevenLabs) so it can be unit tested with a fake clock.
 import type { TestResult, TimelineEvent } from "../../shared/types";
-import { EVENT_PREFIX, clip, codeBlock, describeResult, mmss } from "./format";
+import { EVENT_PREFIX, clip, codeBlock, currentCodeBlock, describeResult, mmss } from "./format";
 
 export const QUESTION_GAP_MS = 75_000; // min gap between triggered questions
 export const INSERT_DELAY_MS = 15_000; // give them a moment to test after inserting
@@ -125,7 +125,7 @@ export class InterviewerBrain {
           kind: "fails",
           build: () =>
             `${EVENT_PREFIX} The candidate has now had ${count} test runs in a row with failures. Latest: ${describeResult(fail)}\n` +
-            `Their current code:\n${codeBlock(this.d.getCode())}\n` +
+            `Their current code (line numbers match their editor):\n${currentCodeBlock(this.d.getCode())}\n` +
             `Ask ONE short question that helps them reason about why a specific failing case fails (point at an input or a line of their code), without telling them the fix. ${this.left()} minutes remain.`,
         });
         this.consecutiveFails = 0;
@@ -142,7 +142,7 @@ export class InterviewerBrain {
     this.insert = null;
     this.pending = null;
     const what = reason === "submit"
-      ? `The candidate just submitted their solution${result ? ` (${describeResult(result)})` : ""}.`
+      ? `The candidate just submitted their solution.${result ? ` ${describeResult(result)}` : ""}`
       : "Time is up for the assessment.";
     this.enqueue({
       kind: "close",
@@ -169,7 +169,7 @@ export class InterviewerBrain {
       if (code && code !== this.lastCodeSent && now - this.lastCodeSentAt >= CODE_SNAPSHOT_GAP_MS) {
         this.lastCodeSent = code;
         this.lastCodeSentAt = now;
-        this.d.sendContext(`Code snapshot at ${this.elapsed()} (${this.left()} min left):\n${codeBlock(code)}`);
+        this.d.sendContext(`Code snapshot at ${this.elapsed()} (${this.left()} min left):\n${currentCodeBlock(code)}`);
       }
 
       const ins = this.insert;
@@ -183,7 +183,7 @@ export class InterviewerBrain {
         this.enqueue({
           kind: "silence",
           build: () =>
-            `${EVENT_PREFIX} The candidate has been quiet with no edits or test runs for about two minutes. Their current code:\n${codeBlock(this.d.getCode())}\n` +
+            `${EVENT_PREFIX} The candidate has been quiet with no edits or test runs for about two minutes. Their current code (line numbers match their editor):\n${currentCodeBlock(this.d.getCode())}\n` +
             `Briefly check in: ask ONE short question about what they're working on or thinking, referencing something specific in their code. ${this.left()} minutes remain.`,
         });
       }
@@ -195,7 +195,7 @@ export class InterviewerBrain {
   private insertTrigger(ins: { at: number; code: string; source: string; tested: boolean }) {
     const ago = Math.round((this.d.now() - ins.at) / 1000);
     const head = `${EVENT_PREFIX} ${ago} seconds ago the candidate ${ins.source}:\n${codeBlock(ins.code, 2500)}\n`;
-    const current = `Their full current code:\n${codeBlock(this.d.getCode())}\n`;
+    const current = `Their full current code (line numbers match their editor):\n${currentCodeBlock(this.d.getCode())}\n`;
     if (!ins.tested) {
       return head + current +
         "They have NOT run the tests since. Ask exactly ONE short, specific question about an edge case or a particular line of this inserted code that it might mishandle, to find out whether they understand and verified it. Do not say whether it is correct. If it seems they accepted it blindly, silently call flag_observation with severity concern.";

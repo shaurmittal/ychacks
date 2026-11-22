@@ -17,6 +17,18 @@ export function codeBlock(code: string, max = 3000): string {
   return "```js\n" + clip(code, max) + "\n```";
 }
 
+/** Prefix each line with its editor line number ("12| ...") so the agent can cite real lines. */
+export function numbered(code: string): string {
+  const lines = code.replace(/\s+$/, "").split("\n");
+  const w = String(lines.length).length;
+  return lines.map((l, i) => `${String(i + 1).padStart(w, " ")}| ${l}`).join("\n");
+}
+
+/** The candidate's full current code, numbered, for triggers and the get_current_code tool. */
+export function currentCodeBlock(code: string, max = 3500): string {
+  return code.trim() ? codeBlock(numbered(code), max) : "(the editor is empty)";
+}
+
 export function describeResult(r: TestResult): string {
   const base = `${r.passed}/${r.total} ${r.hidden ? "tests (including hidden)" : "visible tests"} passed`;
   if (!r.failures.length) return base + ".";
