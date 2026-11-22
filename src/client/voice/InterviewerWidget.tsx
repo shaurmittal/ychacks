@@ -147,7 +147,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
         connectionType: attempt % 2 === 0 ? "webrtc" : "websocket", // retry alternates transport
         dynamicVariables: {
           candidate_name: candidateName || "there",
-          company: assessment.company || "Oarlock",
+          company: assessment.company || "Overwatch",
           problem_title: problem.title,
           problem_statement: problem.statementMd,
           function_name: problem.functionName,

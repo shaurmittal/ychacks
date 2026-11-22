@@ -1,10 +1,10 @@
-# Oarlock — Product spec
+# Overwatch — Product spec
 
 ## One line
 The first-round interviewer companies hire for the AI era: candidates code with AI, a voice interviewer probes how they use it, and the company gets an evidence-backed report.
 
 ## Why companies want it
-Engineers use AI every day at work, but OAs still ban it, or allow it and learn nothing. What matters now is: do you prompt precisely, verify what the AI gives you, understand the code you accept, and catch its mistakes? Oarlock measures exactly that and saves engineers hours of first-round interviews.
+Engineers use AI every day at work, but OAs still ban it, or allow it and learn nothing. What matters now is: do you prompt precisely, verify what the AI gives you, understand the code you accept, and catch its mistakes? Overwatch measures exactly that and saves engineers hours of first-round interviews.
 
 ## Users
 - **Company** (recruiter/engineer): creates an assessment, shares a link, reads ranked reports.

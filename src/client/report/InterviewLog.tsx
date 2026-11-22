@@ -26,7 +26,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 export function InterviewLog({ session, assessment, events, onFocusEvent }: Props) {
   const log = useMemo(() => buildInterviewLog(events, session.startedAt), [events, session.startedAt]);
   const meta: LogMeta = { candidateName: session.candidateName, assessmentTitle: assessment?.title, company: assessment?.company, sessionId: session.id, startedAt: session.startedAt };
-  const base = `oarlock-interview-log-${slug(session.candidateName)}-${session.id}`;
+  const base = `overwatch-interview-log-${slug(session.candidateName)}-${session.id}`;
 
   // /report/:id#interview-log (linked from the ranked list) lands here.
   useEffect(() => {

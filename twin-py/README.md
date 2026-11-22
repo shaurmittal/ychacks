@@ -91,7 +91,7 @@ The `kind` is set by score: below `match_below` it is `match`; at or above `cont
 .venv/bin/python -m pytest      # offline, deterministic, ~4 s
 ```
 
-## Running with Oarlock (the Wasp app)
+## Running with Overwatch (the Wasp app)
 
 ```bash
 # once: Python 3.12 venv with the twin installed
@@ -107,4 +107,4 @@ How it fits together:
 3. After the candidate answers a question, the agent calls the client tool `check_answer`, which hits `POST /api/twin/check` and then `/score` on the service (fast judge, instant). The tool returns "move on" or "ask one follow-up".
 4. `GET /api/twin/:sessionId` shows predicted vs actual answers, for the demo or a future Twin Reveal.
 
-The twin uses a baseline profile (a typical entry-level candidate), because Oarlock collects no profile data. Twin results are never written to the timeline, the metrics or the report. If the service is down, the interview runs as normal.
+The twin uses a baseline profile (a typical entry-level candidate), because Overwatch collects no profile data. Twin results are never written to the timeline, the metrics or the report. If the service is down, the interview runs as normal.

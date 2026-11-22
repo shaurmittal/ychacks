@@ -14,7 +14,7 @@ const problem: Omit<Problem, "hiddenTests"> = {
   starterCode: "/** @param {{start:string,end:string,room:string}[]} bookings */\nfunction mergeBookings(bookings) {\n  \n}\n",
   visibleTests: [],
 };
-const assessment: Assessment = { id: "dev", title: "Voice harness", company: "Oarlock Practice", problemId: problem.id, aiPolicy: "full", durationMin: 15, voice: true, practice: true };
+const assessment: Assessment = { id: "dev", title: "Voice harness", company: "Overwatch Practice", problemId: problem.id, aiPolicy: "full", durationMin: 15, voice: true, practice: true };
 
 const AI_CODE = `function mergeBookings(bookings) {
   const byRoom = {};

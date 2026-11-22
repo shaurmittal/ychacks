@@ -256,7 +256,7 @@ function ReportView({ data, report }: { data: SessionPayload; report: Report }) 
           </div>
         </div>
       </div>
-      <p className="ol-muted ol-small" style={{ textAlign: "center", marginTop: 24 }}>Report generated {new Date(report.generatedAt).toLocaleString()} by Oarlock.</p>
+      <p className="ol-muted ol-small" style={{ textAlign: "center", marginTop: 24 }}>Report generated {new Date(report.generatedAt).toLocaleString()} by Overwatch.</p>
     </>
   );
 }

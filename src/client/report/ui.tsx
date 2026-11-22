@@ -8,7 +8,7 @@ export function Shell({ children, narrow }: { children: ReactNode; narrow?: bool
   return (
     <div className="ol">
       <nav className="ol-nav">
-        <Link to="/" className="ol-brand"><span className="ol-brand-mark">⟂</span>Oarlock</Link>
+        <Link to="/" className="ol-brand"><span className="ol-brand-mark">⟂</span>Overwatch</Link>
         <div className="ol-nav-links">
           <Link to="/">Practice</Link>
           <Link to="/company">For companies</Link>

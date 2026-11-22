@@ -74,7 +74,7 @@ export function TakePage() {
     return (
       <div className="start-wrap">
         <div className="start-card">
-          <div className="brand">Oarlock</div>
+          <div className="brand">Overwatch</div>
           <h1 className="start-title">Assessment not available</h1>
           <p className="error">{loadError}</p>
           <a className="btn" href="/">Back to home</a>
@@ -102,7 +102,7 @@ export function TakePage() {
     return (
       <div className="start-wrap">
         <div className="start-card">
-          <div className="brand">Oarlock</div>
+          <div className="brand">Overwatch</div>
           <h1 className="start-title">Resume your assessment?</h1>
           <p className="muted">You have an assessment in progress as {resumable.candidateName}. The timer kept running.</p>
           <div className="row">

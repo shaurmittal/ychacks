@@ -173,7 +173,7 @@ export function Workspace(props: {
     <div className="ws">
       <header className="ws-top">
         <div className="ws-top-left">
-          <span className="brand">Oarlock</span>
+          <span className="brand">Overwatch</span>
           <span className="ws-sep" />
           <span className="ws-title">{assessment.title || problem.title}</span>
           <span className="pill pill-muted">{POLICY_LABEL[assessment.aiPolicy]}</span>

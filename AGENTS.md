@@ -1,8 +1,8 @@
-# Oarlock — agent guide (shared by every coding agent in Codevisor)
+# Overwatch — agent guide (shared by every coding agent in Codevisor)
 
-**Oarlock is an AI interviewer for the AI era.** Companies run their first-round online assessment (OA) on Oarlock. Candidates solve a coding problem **with an AI assistant allowed** (under a company-set policy), while a **voice interviewer** (ElevenLabs) sits on the call: it watches their code and AI usage live, asks pointed follow-up questions, answers clarifying questions, and keeps time. At the end Oarlock writes a **report** judging problem solving, **how well they used AI**, code quality and communication.
+**Overwatch is an AI interviewer for the AI era.** Companies run their first-round online assessment (OA) on Overwatch. Candidates solve a coding problem **with an AI assistant allowed** (under a company-set policy), while a **voice interviewer** (ElevenLabs) sits on the call: it watches their code and AI usage live, asks pointed follow-up questions, answers clarifying questions, and keeps time. At the end Overwatch writes a **report** judging problem solving, **how well they used AI**, code quality and communication.
 
-Built at the **YC Startups × ElevenLabs Hackathon, Sun Nov 22, 2026, UWaterloo E7**. Theme: **"an AI coworker we would actually hire"**: companies hire Oarlock as their first-round interviewer. Bonus points for **real strangers using it** (students take a practice OA). Hacking ends **15:00 sharp**. Team of 4, each driving one agent in **Codevisor**, each in its own git worktree.
+Built at the **YC Startups × ElevenLabs Hackathon, Sun Nov 22, 2026, UWaterloo E7**. Theme: **"an AI coworker we would actually hire"**: companies hire Overwatch as their first-round interviewer. Bonus points for **real strangers using it** (students take a practice OA). Hacking ends **15:00 sharp**. Team of 4, each driving one agent in **Codevisor**, each in its own git worktree.
 
 If you are one of those agents: read `docs/ARCHITECTURE.md` (contracts, ownership, merge times) and your lane brief in `agents/` first.
 

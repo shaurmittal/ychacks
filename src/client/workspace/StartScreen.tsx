@@ -47,7 +47,7 @@ export function StartScreen(props: {
   return (
     <div className="start-wrap">
       <div className="start-card">
-        <div className="brand">Oarlock</div>
+        <div className="brand">Overwatch</div>
         <div className="start-company">
           {assessment.company}
           {assessment.practice && <span className="pill pill-muted">Practice</span>}

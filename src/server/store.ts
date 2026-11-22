@@ -71,9 +71,12 @@ function seedPractice(): void {
   }
   for (const p of problems) {
     const id = `practice-${p.id}`;
-    if (db.assessments[id]) continue;
+    if (db.assessments[id]) {
+      if (db.assessments[id].company === "Oarlock Practice") db.assessments[id].company = "Overwatch Practice"; // renamed product
+      continue;
+    }
     db.assessments[id] = {
-      id, title: p.title, company: "Oarlock Practice", problemId: p.id,
+      id, title: p.title, company: "Overwatch Practice", problemId: p.id,
       aiPolicy: "full", durationMin: 15, voice: true, practice: true,
     };
   }

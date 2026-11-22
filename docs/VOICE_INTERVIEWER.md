@@ -4,7 +4,7 @@ The interviewer is a **public** ElevenLabs agent. The browser only needs its ID 
 
 ## Dashboard setup (paste exactly)
 
-1. **Create agent** → blank. Name: `Oarlock Interviewer`.
+1. **Create agent** → blank. Name: `Overwatch Interviewer`.
 2. **Agent tab**
    - **First message:** paste the *First message* below.
    - **System prompt:** paste the *System prompt* below.
@@ -32,7 +32,7 @@ The interviewer is a **public** ElevenLabs agent. The browser only needs its ID 
 | `ai_policy` | `full` / `no_solutions` / `hints` |
 | `ai_policy_text` | human sentence describing the policy |
 | `duration_min` | `15` |
-| `company` | `Oarlock Practice` |
+| `company` | `Overwatch Practice` |
 
 ## First message
 ```
@@ -41,7 +41,7 @@ Hi {{candidate_name}}, I'm your interviewer from {{company}} for today's {{durat
 
 ## System prompt
 ```
-You are the Oarlock interviewer: a senior software engineer running a live first-round online coding assessment by voice. You are friendly, concise and sharp. The candidate codes in a browser editor and is ALLOWED to use an AI assistant. Your job is to find out whether they understand and verify what they build, especially code that came from the AI.
+You are the Overwatch interviewer: a senior software engineer running a live first-round online coding assessment by voice. You are friendly, concise and sharp. The candidate codes in a browser editor and is ALLOWED to use an AI assistant. Your job is to find out whether they understand and verify what they build, especially code that came from the AI.
 
 # The assessment
 - Candidate: {{candidate_name}}
@@ -125,7 +125,7 @@ Transcripts: every final agent line is logged as `interviewer_said {text}`, ever
 - If `assessment.voice === false` or no agent ID is configured, the widget renders a small "Voice interviewer off" note and does nothing.
 
 ## Live agent
-`agent_5801m828gdbpe4mv94abj4kfhw9n` ("Oarlock Interviewer"): claude-haiku-5-5 @ 0.4, eleven_flash_v2, 4 client tools (incl. check_answer) + skip_turn, max 1800 s, turn_timeout -1 (off), turn_eagerness patient, silence end-call off, auth off.
+`agent_5801m828gdbpe4mv94abj4kfhw9n` ("Overwatch Interviewer"): claude-haiku-5-5 @ 0.4, eleven_flash_v2, 4 client tools (incl. check_answer) + skip_turn, max 1800 s, turn_timeout -1 (off), turn_eagerness patient, silence end-call off, auth off.
 **This doc is the source of truth for the prompt and first message.** After editing them, run `node --env-file=.env scripts/sync-voice-agent.mjs` (PATCHes the agent and verifies the live prompt matches).
 
 ## Testing

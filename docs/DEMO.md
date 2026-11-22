@@ -1,7 +1,7 @@
 # Demo, strangers, video
 
 ## Judging
-| Criterion | Weight | Oarlock |
+| Criterion | Weight | Overwatch |
 | --- | --- | --- |
 | Technical execution | 25% | Live OA: editor + policy-bound AI + voice interviewer reacting to real events + evidence-backed report |
 | ElevenLabs + partner tools | 25% | ElevenLabs voice interviewer with live context + client tools; assistant-ui panel; Wasp app; Maritime hosting; built with 4 parallel agents in Codevisor |
@@ -11,10 +11,10 @@
 | Bonus | | Real students who took an OA today |
 
 ## 3-minute demo
-1. **Hook (15 s):** "Your engineers code with AI every day. Your interviews pretend AI doesn't exist. Oarlock is the first-round interviewer you'd hire for how people actually work now."
+1. **Hook (15 s):** "Your engineers code with AI every day. Your interviews pretend AI doesn't exist. Overwatch is the first-round interviewer you'd hire for how people actually work now."
 2. **Live (90 s):** teammate starts the practice OA. Asks the AI for a solution, inserts it **without testing**. Interviewer (voice): "What does that do when two bookings share an end time?" Teammate answers, runs tests, one hidden-style edge case fails, fixes it with a precise prompt.
 3. **Report (45 s):** submit → report appears: scores, "inserted AI code at 03:12 and only tested after the interviewer asked", AI share 64%, recommendation.
-4. **Close (30 s):** company view: "17 students took Oarlock today — here's the ranked list." Mention policy modes (full / no solutions / hints).
+4. **Close (30 s):** company view: "17 students took Overwatch today — here's the ranked list." Mention policy modes (full / no solutions / hints).
 
 ## Strangers (13:45–14:15, and at the table during judging)
 QR posters around E7: **"Take a 10-minute AI-era OA. Get your interview report."** Practice assessments are seeded; no sign-up. Have a laptop at the table too. Count completed sessions on the company page.

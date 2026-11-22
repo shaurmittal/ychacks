@@ -73,7 +73,7 @@ export type LogMeta = { candidateName: string; assessmentTitle?: string; company
 
 export function interviewLogText(log: InterviewLog, meta: LogMeta): string {
   const out: string[] = [
-    "Oarlock interview log",
+    "Overwatch interview log",
     `Candidate:  ${meta.candidateName}`,
     `Assessment: ${[meta.assessmentTitle, meta.company].filter(Boolean).join(" · ") || "-"}`,
     `Session:    ${meta.sessionId} (started ${meta.startedAt})`,

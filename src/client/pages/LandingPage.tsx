@@ -26,7 +26,7 @@ export function LandingPage() {
         <span className="ol-eyebrow">First-round interviews for the AI era</span>
         <h1>Code with AI. Get interviewed by voice. See how well you really build.</h1>
         <p>
-          Oarlock is the online assessment where the AI assistant is allowed. A voice interviewer watches how you prompt,
+          Overwatch is the online assessment where the AI assistant is allowed. A voice interviewer watches how you prompt,
           verify and explain the code you accept, then writes an evidence-backed report.
         </p>
       </section>
@@ -64,7 +64,7 @@ export function LandingPage() {
         <div>
           <h3 style={{ fontSize: 19 }}>For companies</h3>
           <p className="ol-muted" style={{ margin: "6px 0 0", maxWidth: 620 }}>
-            Hire Oarlock as your first-round interviewer. Create an assessment, choose the AI policy, share the link, and read ranked, evidence-backed reports.
+            Hire Overwatch as your first-round interviewer. Create an assessment, choose the AI policy, share the link, and read ranked, evidence-backed reports.
           </p>
         </div>
         <Link to="/company" className="ol-btn">Create an assessment</Link>

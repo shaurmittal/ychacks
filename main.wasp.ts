@@ -14,7 +14,7 @@ import { VoiceHarnessPage } from "./src/client/voice/VoiceHarnessPage" with { ty
 export default app({
   name: "oarlock",
   wasp: { version: "^0.26.1" },
-  title: "Oarlock",
+  title: "Overwatch",
   head: ["<link rel='icon' href='/favicon.ico' />"],
   spec: [
     route("LandingRoute", "/", page(LandingPage)),
