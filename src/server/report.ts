@@ -59,6 +59,7 @@ const lines = (code: unknown) => (typeof code === "string" ? code.split("\n").le
 
 function describe(e: TimelineEvent): string {
   const d = e.data;
+  if ((e.kind as string) === "interviewer_trigger") return `interviewer prompted by ${String(d.reason)}: ${clip(d.summary, 200)}`;
   switch (e.kind) {
     case "code": return `code snapshot (${lines(d.code)} lines)`;
     case "prompt": return `"${clip(d.text, 500)}"`;

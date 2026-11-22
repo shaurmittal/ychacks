@@ -2,6 +2,7 @@
 import type { Metrics, Session, TestResult, TimelineEvent } from "../shared/types";
 import { aiCodeShare } from "../shared/aiShare";
 import type { Submission } from "./store";
+import { isQuestion } from "../shared/interviewLog";
 
 const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const ms = (iso: string) => new Date(iso).getTime();
@@ -68,7 +69,7 @@ export function computeMetrics(session: Session, events: TimelineEvent[], sub?: 
     insertsCount: inserts.length,
     testRunsTotal: testRuns.length,
     testRunsAfterInsertRate: inserts.length ? round(verified / inserts.length) : 0,
-    interviewerQuestions: interviewer.filter((e) => str(e.data.text).includes("?")).length, // turns that ask something
+    interviewerQuestions: interviewer.filter((e) => isQuestion(str(e.data.text))).length, // same rule as the interview log
     candidateTurns: events.filter((e) => e.kind === "candidate_said").length,
     flagsPositive: flags.filter((e) => e.data.severity === "positive").length,
     flagsConcern: flags.filter((e) => e.data.severity === "concern").length,
