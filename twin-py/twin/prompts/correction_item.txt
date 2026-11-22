@@ -1,0 +1,2 @@
+- Asked: "$question_text"
+  They actually answered: "$actual_answer"$note

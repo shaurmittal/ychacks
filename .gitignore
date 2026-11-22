@@ -10,3 +10,12 @@ node_modules/
 !.env.example
 !.env.*.example
 data/db.json
+
+# twin-py (Python)
+twin-py/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+twin-py/logs/
+logs/twin_runs.jsonl

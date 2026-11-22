@@ -1,0 +1,9 @@
+An interviewer predicted a participant's answer but the real answer differed.
+
+Question: {{ scenario.question_text }}
+Predicted answer: {{ scenario.predicted }}
+Real answer: {{ scenario.actual }}
+
+Write ONE short, neutral, curious follow-up question the interviewer could ask to
+understand the difference. Do not mention the prediction, do not judge the
+participant, and do not ask about personal or protected characteristics.
