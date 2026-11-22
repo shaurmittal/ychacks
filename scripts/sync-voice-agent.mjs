@@ -5,7 +5,7 @@
 // Needs ELEVENLABS_API_KEY (server-side secret; never ship it to the client).
 import { readFileSync } from "node:fs";
 
-const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || "agent_3701m826pmy4ebbsqrmqmjcvq3vd";
+const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || "agent_5801m828gdbpe4mv94abj4kfhw9n";
 const doc = readFileSync(new URL("../docs/VOICE_INTERVIEWER.md", import.meta.url), "utf8");
 const block = (heading) => {
   const m = doc.match(new RegExp(`## ${heading}\\n\`\`\`\\n([\\s\\S]*?)\\n\`\`\``));
