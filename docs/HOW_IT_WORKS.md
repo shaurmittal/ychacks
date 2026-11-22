@@ -15,7 +15,7 @@ flowchart TB
     Start["Start screen<br/>name · consent · mic<br/>LinkedIn (optional)"]
     Editor["Code editor<br/>+ test runner"]
     Assistant["AI assistant<br/>(assistant-ui)"]
-    Voice["Voice interviewer<br/>animated face"]
+    Voice["Voice interviewer<br/>status + captions"]
     Bus(("Timeline<br/>every action<br/>is an event"))
     Start --> Editor
     Editor --> Bus
@@ -64,7 +64,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 1 | Picks a practice problem on the landing page, or opens a company's link | Fetches the assessment and the problem; hidden tests are stripped before anything reaches the browser | `LandingPage.tsx`, `GET /api/assessments/:id` → `server/assessments.ts` |
 | 2 | Enters a name, ticks consent, allows the mic, optionally pastes a LinkedIn URL | Creates a session; the timeline starts (`session_start`) | `StartScreen.tsx`, `POST /api/sessions` → `server/sessions.ts`, `timeline/bus.ts` |
-| 3 | The interviewer's face appears and greets them by name | The browser opens a voice call to the ElevenLabs agent with the candidate name, problem, AI policy and duration as variables | `voice/InterviewerWidget.tsx` |
+| 3 | The interviewer connects and greets them by name | The browser opens a voice call to the ElevenLabs agent with the candidate name, problem, AI policy and duration as variables | `voice/InterviewerWidget.tsx` |
 | 4 | Writes code, presses **Run tests** | Visible tests run in a Web Worker with a 2 s timeout; code snapshots and results are logged | `workspace/Workspace.tsx`, `runner.ts`, `runner.worker.ts` |
 | 5 | Asks the AI assistant for help, clicks **Insert into editor** | The server builds a prompt with the problem, their current code and the company's AI policy, then calls Claude Haiku; prompts, replies and inserts are logged | `assistant/AssistantPanel.tsx` → `POST /api/assist` → `server/assist.ts` |
 | 6 | About 15 s after inserting AI code, the interviewer asks something like "What happens on line 10 when two bookings touch?" | The trigger engine sees the `insert` event with no test run since, and tells the agent to ask about that exact code, with line numbers | `voice/triggers.ts` |
@@ -95,7 +95,7 @@ flowchart TB
 - **Files:** `src/client/assistant/*`, `src/server/assist.ts`, `src/server/assistPrompt.ts`, `src/shared/aiShare.ts`.
 
 ### Voice interviewer (ElevenLabs Agents)
-- **What:** a live voice call with an animated face whose mouth moves with the agent's real audio. Its ring shows the state: connecting, listening, speaking or muted.
+- **What:** a live voice call in the right column, with a status (connecting, listening, speaking or muted), a mute button and a live caption of the interviewer's last line.
 - **What it does:**
   - Greets the candidate and explains the format.
   - Answers clarifying questions from the problem statement only.
@@ -114,7 +114,7 @@ flowchart TB
 - **Never nags:** silence while coding is normal. It never asks "are you still there?" (the turn timeout is disabled on the agent, and there's no silence trigger).
 - **Tools it can call in the browser:** `get_current_code`, `get_recent_events`, `flag_observation` (a silent note for the report), and `check_answer` (twin).
 - **Prompt:** lives in `docs/VOICE_INTERVIEWER.md`; `scripts/sync-voice-agent.mjs` pushes it to the live agent.
-- **Files:** `src/client/voice/InterviewerWidget.tsx` (call, tools, face), `triggers.ts` (when to speak), `format.ts`.
+- **Files:** `src/client/voice/InterviewerWidget.tsx` (call, tools, captions), `triggers.ts` (when to speak), `format.ts`.
 
 ### Twin: predict-then-probe (Expected Parrot + Fiber AI), Daniel's lane 05
 - **What:** a "twin" of the candidate predicts how they'll answer 4 warm-up questions (approach, AI plan, confidence 1–5, worried-about edge case). When the real answer surprises the twin, the interviewer asks one curious follow-up.
@@ -212,7 +212,7 @@ flowchart TB
   - The twin never affects scores.
   - A human makes the hiring decision.
 - **Is it always listening?** While the call is connected and unmuted, yes: it hears and transcribes everything, so the report can credit thinking out loud. It only *speaks* when spoken to, when a real event happens, or for the time warning and the close. Candidates can mute at any time.
-- **What we cut:** a real video avatar (HeyGen LiveAvatar would replace our ElevenLabs client wiring), other languages, ATS integrations, custom rubrics, and feeding twin answers back as training data.
+- **What we cut:** an interviewer face or video avatar (HeyGen LiveAvatar would replace our ElevenLabs client wiring), other languages, ATS integrations, custom rubrics, and feeding twin answers back as training data.
 
 ---
 
@@ -224,7 +224,7 @@ src/shared/                  types, problems (with hidden tests; server only), A
 src/client/pages/            Landing, Take, Report, Company, ranked list
 src/client/workspace/        editor, runner (+ Web Worker), start screen, timer, paste detection
 src/client/assistant/        assistant-ui panel + adapter
-src/client/voice/            ElevenLabs widget + face, trigger engine, twin client
+src/client/voice/            ElevenLabs widget, trigger engine, twin client
 src/client/timeline/bus.ts   the event bus
 src/client/report/           report UI + interview log
 src/server/                  store, sessions, assessments, grader, metrics, report, assist, twin proxy
