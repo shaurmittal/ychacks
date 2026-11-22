@@ -1,0 +1,23 @@
+{
+  "questions": [
+    {"id": "tools_pain", "type": "free_text",
+     "text": "What is the most frustrating part of the tools you use at work every day?"},
+    {"id": "ai_usage", "type": "single_choice",
+     "text": "How often do you use AI assistants in your work?",
+     "options": ["Never", "Monthly", "Weekly", "Daily"]},
+    {"id": "meeting_load", "type": "scale", "scale_min": 1, "scale_max": 5,
+     "text": "How much do meetings get in the way of focused work? (1 = not at all, 5 = constantly)"},
+    {"id": "buying_role", "type": "single_choice",
+     "text": "What is your role when your team buys new software?",
+     "options": ["Decide", "Recommend", "Use only", "Not involved"]},
+    {"id": "success_metric", "type": "free_text",
+     "text": "How do you know you had a good week at work?"},
+    {"id": "remote_pref", "type": "single_choice",
+     "text": "Which way of working do you prefer?",
+     "options": ["Fully remote", "Hybrid", "Fully in office"]},
+    {"id": "learning_time", "type": "scale", "scale_min": 0, "scale_max": 10,
+     "text": "How satisfied are you with the time you get to learn new skills? (0-10)"},
+    {"id": "change_one_thing", "type": "free_text",
+     "text": "If you could change one thing about how your team works, what would it be?"}
+  ]
+}
