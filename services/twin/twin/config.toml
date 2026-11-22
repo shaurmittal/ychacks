@@ -1,0 +1,37 @@
+# All twin thresholds live here. Override with TWIN_CONFIG=/path/to/other.toml
+# or by passing a TwinConfig to the functions that accept `config=`.
+
+[prediction]
+n_samples = 5                 # samples per question (EDSL `n`)
+
+[surprise]
+# score < match_below           -> kind "match", no probe
+# score >= contradiction_at     -> kind "contradiction"
+# otherwise                     -> kind "emphasis_shift"
+match_below = 0.35
+contradiction_at = 0.7
+probe_at = 0.5                # suggest a follow-up probe when score >= this
+
+[surprise.free_text]
+# Cheap embedding similarity first. Only below this similarity is the LLM judge called.
+judge_below_similarity = 0.6
+# Score assigned from the judge's verdict.
+score_match = 0.1
+score_emphasis_shift = 0.5
+score_novel_info = 0.65
+score_contradiction = 0.9
+
+[calibration]
+scale_tolerance = 1           # scale answers within this many points count as a match
+
+[engine]
+# Model and provider come from env vars: TWIN_MODEL, TWIN_MODEL_SERVICE, TWIN_JUDGE_MODEL.
+# "test" = EDSL's offline test model (no network, no cost).
+default_model = "test"
+# How non-test models run (EDSL 1.0.9 run flags):
+#   "offload" job runs on Expected Parrot servers, billed to EXPECTED_PARROT_API_KEY credits
+#             (~40 s per job incl. queueing, so batch questions into one job)
+#   "local"   direct provider calls with your own OPENAI_API_KEY / ANTHROPIC_API_KEY etc.
+#   "proxy"   EDSL's use_api_proxy; in 1.0.9 it still demanded a local provider key for us
+execution = "offload"
+remote_cache = false
