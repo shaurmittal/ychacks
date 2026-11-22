@@ -3,35 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Assessment, Problem, TestResult } from "../../shared/types";
 import { initTimeline, log, subscribe } from "../timeline/bus";
-import { InterviewerFace, type FaceLevels, type FaceState } from "./InterviewerFace";
 import { InterviewerWidget } from "./InterviewerWidget";
-
-/** Fake audio levels for previewing the face without an ElevenLabs call: syllable-like bursts with pauses. */
-const fakeSpeech = (): number => {
-  const t = performance.now() / 1000;
-  const syll = Math.max(0, Math.sin(t * 2 * Math.PI * 3.7)) ** 1.5;
-  const phrase = Math.sin(t * 2 * Math.PI * 0.35) > -0.3 ? 1 : 0; // pauses between phrases
-  return phrase * (0.18 + 0.34 * syll + 0.05 * Math.sin(t * 5.3)) + Math.random() * 0.02; // ~0.2–0.55 while talking, like real TTS
-};
-const fakeMic = (): number => {
-  const t = performance.now() / 1000;
-  return Math.max(0, Math.sin(t * 2 * Math.PI * 0.5)) * (0.12 + Math.random() * 0.06);
-};
-const FAKE_LEVELS: FaceLevels = { output: fakeSpeech, input: fakeMic };
-const FACE_STATES: FaceState[] = ["connecting", "listening", "speaking", "muted", "ended", "error", "off"];
-
-function FacePreview() {
-  return (
-    <div style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "0 0 16px", padding: 12, border: "1px solid #d8dee4", borderRadius: 10 }}>
-      {FACE_STATES.map((st) => (
-        <figure key={st} data-face-state={st} style={{ margin: 0, textAlign: "center", fontSize: 12, color: "#59636e" }}>
-          <InterviewerFace state={st} levels={FAKE_LEVELS} />
-          <figcaption>{st}</figcaption>
-        </figure>
-      ))}
-    </div>
-  );
-}
 
 const problem: Omit<Problem, "hiddenTests"> = {
   id: "mergeBookings",
@@ -85,7 +57,6 @@ export function VoiceHarnessPage() {
     <main style={{ padding: 20, fontFamily: "system-ui", display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
       <section style={{ minWidth: 0 }}>
         <h2 style={{ marginTop: 0 }}>Voice interviewer harness (dev)</h2>
-        <FacePreview />
         {!started ? <button onClick={start}>Start session</button> : (
           <>
             <textarea value={code} onChange={(e) => edit(e.target.value)} spellCheck={false}
