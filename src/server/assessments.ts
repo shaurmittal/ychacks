@@ -28,7 +28,7 @@ export const createAssessment: CreateAssessment = (req, res) => {
 };
 
 export const getAssessment: GetAssessment = (req, res) => {
-  const assessment = store.getAssessment(req.params.id);
+  const assessment = store.getAssessment(String(req.params.id));
   if (!assessment) return void res.status(404).json({ error: "Assessment not found." });
   const problem = getProblem(assessment.problemId);
   if (!problem) return void res.status(404).json({ error: `Problem ${assessment.problemId} is not available yet.` });
@@ -36,7 +36,7 @@ export const getAssessment: GetAssessment = (req, res) => {
 };
 
 export const listAssessmentSessions: ListAssessmentSessions = (req, res) => {
-  const rows = store.sessionsForAssessment(req.params.id).map((session) => ({ session, report: store.getReport(session.id) }));
+  const rows = store.sessionsForAssessment(String(req.params.id)).map((session) => ({ session, report: store.getReport(session.id) }));
   rows.sort((a, b) => {
     const sa = a.report?.overall ?? -1;
     const sb = b.report?.overall ?? -1;

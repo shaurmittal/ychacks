@@ -19,7 +19,7 @@ export const createSession: CreateSession = (req, res) => {
 };
 
 export const postEvents: PostEvents = (req, res) => {
-  const id = req.params.id;
+  const id = String(req.params.id);
   if (!store.getSession(id)) return void res.status(404).json({ error: "Session not found." });
   const body = req.body as unknown;
   const list = (Array.isArray(body) ? body : [body]) as TimelineEvent[];
@@ -29,7 +29,7 @@ export const postEvents: PostEvents = (req, res) => {
 };
 
 export const submitSession: SubmitSession = (req, res) => {
-  const id = req.params.id;
+  const id = String(req.params.id);
   const session = store.getSession(id);
   if (!session) return void res.status(404).json({ error: "Session not found." });
   const assessment = store.getAssessment(session.assessmentId);
@@ -46,7 +46,7 @@ export const submitSession: SubmitSession = (req, res) => {
 };
 
 export const getSession: GetSession = (req, res) => {
-  const id = req.params.id;
+  const id = String(req.params.id);
   const session = store.getSession(id);
   if (!session) return void res.status(404).json({ error: "Session not found." });
   const assessment = store.getAssessment(session.assessmentId);

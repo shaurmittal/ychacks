@@ -69,13 +69,21 @@ export function grade(code: string, problem: Problem): GradeOutcome {
   const failures: TestResult["failures"] = [];
   let vPass = 0;
   let hPass = 0;
-  for (const t of problem.visibleTests) {
+  // One timeout means the code hangs; don't block the server for 2 s on every remaining test.
+  let timedOut = false;
+  const run = (t: TestCase) => {
+    if (timedOut) return { ok: false, message: "timeout" };
     const r = runOne(code, problem, t);
+    if (r.message === "timeout") timedOut = true;
+    return r;
+  };
+  for (const t of problem.visibleTests) {
+    const r = run(t);
     if (r.ok) vPass++;
     else failures.push({ name: t.name, message: r.message });
   }
   problem.hiddenTests.forEach((t, i) => {
-    const r = runOne(code, problem, t);
+    const r = run(t);
     if (r.ok) hPass++;
     // Never leak hidden names, inputs or expected values.
     else failures.push({ name: `hidden test ${i + 1}`, message: `hidden test ${i + 1} failed` });
