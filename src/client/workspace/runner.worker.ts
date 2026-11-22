@@ -12,10 +12,11 @@ self.onmessage = (ev: MessageEvent<RunRequest>) => {
   let passed = 0;
   let fn: unknown;
   try {
-    fn = new Function(code + "\nreturn typeof " + functionName + " === 'undefined' ? undefined : " + functionName)();
+    new Function(code); // syntax-check the candidate's code alone, so errors point at their code
+    fn = new Function(code + "\n;return typeof " + functionName + " === 'undefined' ? undefined : " + functionName)();
   } catch (err) {
     const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-    const result: TestResult = { passed: 0, total: tests.length, failures: tests.map((t) => ({ name: t.name, message: msg })), ms: performance.now() - t0, hidden: false };
+    const result: TestResult = { passed: 0, total: tests.length, failures: tests.map((t) => ({ name: t.name, message: msg })), ms: Math.round(performance.now() - t0), hidden: false };
     (self as unknown as Worker).postMessage(result);
     return;
   }
