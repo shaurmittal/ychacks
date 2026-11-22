@@ -1,0 +1,11 @@
+An interviewer predicted how a participant would answer a question, then heard the real answer.
+Classify how the real answer relates to the prediction.
+
+Question: {{ scenario.question_text }}
+Predicted answer: {{ scenario.predicted }}
+Real answer: {{ scenario.actual }}
+
+- match: same meaning, even if worded differently
+- emphasis_shift: same general view, but different priorities or emphasis
+- novel_info: adds important information the prediction did not anticipate
+- contradiction: the real answer disagrees with the prediction
