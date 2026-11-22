@@ -4,6 +4,7 @@
 
 POST /predict  {profile, guide, n_samples?}            -> {predictions: [TwinPrediction], usage}
 POST /score    {question, prediction, answer, judge?}  -> SurpriseResult
+POST /profile  {linkedinUrl}                           -> {found, profile?}  (Fiber AI, 1 credit if found)
 GET  /health                                           -> {ok, model}
 
 `judge` is "fast" (default: embedding only, no LLM, instant) or "llm" (EDSL judge,
@@ -53,7 +54,17 @@ def handle_score(body: dict) -> dict:
     return score_surprise(q, p, body["answer"], judge=judge).model_dump()
 
 
-ROUTES = {"/predict": handle_predict, "/score": handle_score}
+def handle_profile(body: dict) -> dict:
+    from .fiber import FiberProfileSource, ProfileNotFound
+
+    try:
+        profile = FiberProfileSource().get_profile(str(body.get("linkedinUrl", "")))
+    except ProfileNotFound as e:
+        return {"found": False, "error": str(e)}
+    return {"found": True, "profile": profile.model_dump()}
+
+
+ROUTES = {"/predict": handle_predict, "/score": handle_score, "/profile": handle_profile}
 
 
 class Handler(BaseHTTPRequestHandler):
