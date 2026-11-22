@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TimelineEvent, TimelineKind } from "../../shared/types";
 import { EVENT_PREFIX } from "./format";
-import { DEBRIEF_ANSWER_TIMEOUT_MS, DEBRIEF_MAX_MS, DEBRIEF_NEXT_AFTER_MS, InterviewerBrain, QUESTION_GAP_MS, changedLines, isTrivialLine, lineRanges, type TriggerReason } from "./triggers";
+import { DEBRIEF_ANSWER_TIMEOUT_MS, DEBRIEF_NEXT_AFTER_MS, DEBRIEF_QUESTION_WAIT_MS, InterviewerBrain, QUESTION_GAP_MS, changedLines, isTrivialLine, lineRanges, type TriggerReason } from "./triggers";
 
 const STARTER = "/** @param {object[]} bookings */\nfunction mergeBookings(bookings) {\n  \n}";
 
@@ -223,54 +223,55 @@ describe("InterviewerBrain", () => {
   });
 });
 
-describe("twin debrief (lane 05)", () => {
-  const QS = [
-    { id: "approach", type: "free_text" as const, text: "How did you approach it?" },
-    { id: "ai_plan", type: "single_choice" as const, text: "How did you use the AI?", options: ["Not at all", "To write most of the solution"] },
-  ];
+describe("twin reveal (lane 05)", () => {
+  const Q = { id: "why", type: "free_text" as const, text: "Why did you keep two 8x8 arrays instead of a 3D table?" };
   const result = { passed: 13, total: 13, failures: [], ms: 5, hidden: true };
 
   it("never asks twin questions mid-session", () => {
     const s = setup();
-    s.brain.setTwinQuestions(QS);
+    s.brain.enableTwinReveal();
+    s.brain.setTwinQuestions([Q]);
     s.advance(QUESTION_GAP_MS * 3);
     expect(s.logged.filter((l) => l.reason === "twin")).toHaveLength(0);
   });
 
-  it("after submit: asks each question once, back to back, then closes", () => {
+  it("on submit: holds the floor, asks the code question as soon as it arrives, closes after the reveal", () => {
     const s = setup();
-    s.brain.setTwinQuestions(QS);
-    s.advance(5_000);
+    s.brain.enableTwinReveal();
     s.emit("submit", { code: "x", result });
-    s.advance(2_000);
+    s.advance(1_000);
     expect(s.trig).toHaveLength(1);
-    expect(s.trig[0]).toContain('question_id "approach"');
-    expect(s.trig[0]).toContain("wrap-up");
+    expect(s.trig[0]).toContain("One last quick question");
     expect(s.closing).toHaveLength(0);
-    s.advance(4_000);
-    s.brain.noteTwinAnswered();
-    s.advance(DEBRIEF_NEXT_AFTER_MS + 2_000);
+    s.advance(2_000);
+    s.brain.setTwinQuestions([Q]); // generated ~2 s after submit
+    s.advance(1_000);
     expect(s.trig).toHaveLength(2);
-    expect(s.trig[1]).toContain('question_id "ai_plan"');
-    expect(s.trig[1]).toContain("Not at all | To write most of the solution");
-    s.advance(3_000);
-    s.brain.noteTwinAnswered();
+    expect(s.trig[1]).toContain('question_id "why"');
+    expect(s.trig[1]).toContain("two 8x8 arrays");
+    s.advance(8_000);
+    s.brain.noteTwinAnswered(); // check_answer -> agent says the reveal
     s.advance(DEBRIEF_NEXT_AFTER_MS + 2_000);
     expect(s.logged.map((l) => l.reason)).toEqual(["twin", "twin", "close"]);
     expect(s.closing).toEqual(["submit"]);
   });
 
-  it("moves on when an answer never comes, and the whole debrief is capped", () => {
-    const s = setup();
-    s.brain.setTwinQuestions(QS);
-    s.emit("submit", { code: "x", result });
-    s.advance(DEBRIEF_ANSWER_TIMEOUT_MS + 3_000);
-    expect(s.trig).toHaveLength(2);
-    s.advance(DEBRIEF_MAX_MS);
-    expect(s.closing).toEqual(["submit"]);
+  it("closes if the question never arrives, or the answer never comes", () => {
+    const a = setup();
+    a.brain.enableTwinReveal();
+    a.emit("submit", { code: "x", result });
+    a.advance(DEBRIEF_QUESTION_WAIT_MS + 2_000);
+    expect(a.closing).toEqual(["submit"]);
+    const b = setup();
+    b.brain.enableTwinReveal();
+    b.emit("submit", { code: "x", result });
+    b.advance(2_000);
+    b.brain.setTwinQuestions([Q]);
+    b.advance(DEBRIEF_ANSWER_TIMEOUT_MS + 5_000);
+    expect(b.closing).toEqual(["submit"]);
   });
 
-  it("without twin questions, submit closes immediately as before", () => {
+  it("without the twin, submit closes immediately as before", () => {
     const s = setup();
     s.emit("submit", { code: "x", result });
     s.advance(2_000);

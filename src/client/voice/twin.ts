@@ -56,3 +56,21 @@ export async function getTwinIntro(sessionId: string, maxMs = 6_000): Promise<st
   }
   return null;
 }
+
+/** On submit: asks the server for the code-specific reveal question (twin predicts in parallel). Calls onQuestion once. */
+export function watchTwinReveal(sessionId: string, code: string, onQuestion: (q: TwinQuestion) => void): () => void {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const poll = async (attempt: number) => {
+    if (stopped || attempt > 30) return;
+    try {
+      const r = await api.post("api/twin/reveal", { json: { sessionId, code }, timeout: 10_000 }).json<{ reveal: string | null; question: TwinQuestion | null }>();
+      if (stopped) return;
+      if (r.question) return onQuestion(r.question);
+      if (r.reveal === "error" || r.reveal === null) return;
+    } catch { /* retry */ }
+    timer = setTimeout(() => poll(attempt + 1), 600);
+  };
+  poll(0);
+  return () => { stopped = true; if (timer) clearTimeout(timer); };
+}

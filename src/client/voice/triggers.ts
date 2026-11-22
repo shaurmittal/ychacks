@@ -7,7 +7,8 @@ import { EVENT_PREFIX, clip, codeBlock, currentCodeBlock, describeResult, mmss }
 
 export const QUESTION_GAP_MS = 75_000; // min gap between triggered questions
 // Lane 05 twin debrief: after submit, ask the twin questions back to back, then close.
-export const DEBRIEF_NEXT_AFTER_MS = 3_000; // quiet time after the answer/follow-up before the next question
+export const DEBRIEF_NEXT_AFTER_MS = 3_000; // quiet time after the answer/reveal before closing
+export const DEBRIEF_QUESTION_WAIT_MS = 20_000; // no reveal question by then (LLM/twin down): just close
 export const DEBRIEF_ANSWER_TIMEOUT_MS = 25_000; // no check_answer by then: move on
 export const DEBRIEF_MAX_MS = 100_000; // whole debrief cap (2-minute demo)
 export const INSERT_DELAY_MS = 15_000; // give them a moment to test after inserting
@@ -100,7 +101,8 @@ export class InterviewerBrain {
   private closed = false;
   private closeReason: "submit" | "time" = "submit";
   private twinQueue: TwinQuestion[] = [];
-  private debrief: { startedAt: number; askedAt: number; answeredAt: number; result?: TestResult } | null = null;
+  private debrief: { startedAt: number; heldAt: number; askedAt: number; answeredAt: number; result?: TestResult } | null = null;
+  private twinEnabled = false;
   triggersSent = 0;
 
   constructor(private d: BrainDeps) {
@@ -120,6 +122,8 @@ export class InterviewerBrain {
 
   /** Lane 05: twin questions, asked as a short debrief right after the candidate submits. */
   setTwinQuestions(qs: TwinQuestion[]) { this.twinQueue = [...qs]; }
+  /** The twin is up for this session: on submit, hold for the code-specific reveal question instead of closing. */
+  enableTwinReveal() { this.twinEnabled = true; }
   /** check_answer was called for the current debrief question. */
   noteTwinAnswered() { if (this.debrief) this.debrief.answeredAt = this.d.now(); }
   get twinRemaining() { return this.twinQueue.length; }
@@ -131,12 +135,10 @@ export class InterviewerBrain {
     const first = this.debrief.askedAt === 0;
     const how = q.type === "single_choice" ? ` For check_answer, map their answer to the closest of: ${q.options!.join(" | ")}.`
       : q.type === "scale" ? ` For check_answer, pass just the number (${q.scale_min}-${q.scale_max}).` : "";
-    const lead = first
-      ? `The candidate just submitted their solution${this.debrief.result ? ` (${describeResult(this.debrief.result)})` : ""}. Before saying goodbye, ask ${this.twinQueue.length + 1} very quick wrap-up questions, one at a time. Don't comment on the test results. Start with a few words like "Quick wrap-up before you go", then ask:`
-      : "Next wrap-up question, ask it now:";
+    const lead = first ? "Now ask this one question, exactly as written or very close to it:" : "Next question, ask it now:";
     return {
       summary: `Twin debrief question "${q.id}"`,
-      text: `${EVENT_PREFIX} ${lead} "${q.text}" When they answer, call check_answer with question_id "${q.id}" and their answer, then do what it returns, keeping any follow-up to one short sentence.${how} Don't mention predictions.`,
+      text: `${EVENT_PREFIX} ${lead} "${q.text}" When they answer, call check_answer with question_id "${q.id}" and a faithful one-sentence summary of their answer, then say exactly what it tells you to.${how}`,
     };
   }
 
@@ -221,11 +223,11 @@ export class InterviewerBrain {
 
   private close(reason: "submit" | "time", result?: TestResult, force = false) {
     if (this.closed) return;
-    if (!force && this.twinQueue.length && !this.debrief) {
+    if (!force && (this.twinEnabled || this.twinQueue.length) && !this.debrief) {
       this.closeReason = reason;
       this.insert = null;
       this.pending = null;
-      this.debrief = { startedAt: this.d.now(), askedAt: 0, answeredAt: 0, result };
+      this.debrief = { startedAt: this.d.now(), heldAt: 0, askedAt: 0, answeredAt: 0, result };
       return; // tick() runs the debrief, then closes
     }
     if (this.debrief) result = result ?? this.debrief.result;
@@ -287,13 +289,22 @@ export class InterviewerBrain {
 
     const db = this.debrief;
     if (db && !this.closed) {
+      const speaking = this.d.agentSpeaking();
+      if (!db.heldAt && !speaking) { // hold the floor while the question is generated
+        db.heldAt = now;
+        this.d.sendTrigger(`${EVENT_PREFIX} The candidate just submitted their solution${db.result ? ` (${describeResult(db.result)})` : ""}. Say only one short sentence like "Thanks! One last quick question while I look over your code." Don't comment on the results, don't ask anything yet, and don't say goodbye.`);
+        this.d.logTrigger("twin", "Submitted; holding for the twin reveal question");
+        this.triggersSent += 1;
+      }
       const waitingForAnswer = db.askedAt > 0 && db.answeredAt < db.askedAt;
       const timedOut = waitingForAnswer && now - db.askedAt > DEBRIEF_ANSWER_TIMEOUT_MS;
-      const settled = !this.d.agentSpeaking() && now - Math.max(db.answeredAt, this.lastCandidateSpeechAt) >= DEBRIEF_NEXT_AFTER_MS;
-      const ready = db.askedAt === 0 || timedOut || (!waitingForAnswer && settled);
-      if (now - db.startedAt > DEBRIEF_MAX_MS || (ready && !this.twinQueue.length)) {
-        if (db.askedAt === 0 || timedOut || settled || now - db.startedAt > DEBRIEF_MAX_MS) this.close(this.closeReason, db.result, true);
-      } else if (ready && !this.pending && !this.d.agentSpeaking()) {
+      const settled = !speaking && now - Math.max(db.answeredAt, this.lastCandidateSpeechAt) >= DEBRIEF_NEXT_AFTER_MS;
+      const canAsk = db.heldAt > 0 && now - db.heldAt >= 1_500 && !speaking && (db.askedAt === 0 || timedOut || (!waitingForAnswer && settled));
+      const noQuestion = db.askedAt === 0 && !this.twinQueue.length && now - db.startedAt > DEBRIEF_QUESTION_WAIT_MS;
+      const done = db.askedAt > 0 && !this.twinQueue.length && (timedOut || (!waitingForAnswer && settled));
+      if (now - db.startedAt > DEBRIEF_MAX_MS || noQuestion || done) {
+        this.close(this.closeReason, db.result, true);
+      } else if (this.twinQueue.length && canAsk) {
         const built = this.twinTrigger();
         if (built) {
           this.d.sendTrigger(built.text);

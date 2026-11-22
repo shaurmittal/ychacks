@@ -6,7 +6,7 @@ import type { Assessment, Problem } from "../../shared/types";
 import { getCode, log, recent, subscribe } from "../timeline/bus";
 import { EVENT_PREFIX, currentCodeBlock, describeEvent, policyText } from "./format";
 import { InterviewerBrain } from "./triggers";
-import { checkTwinAnswer, getTwinIntro, watchTwinBrief } from "./twin"; // lane 05 twin
+import { checkTwinAnswer, getTwinIntro, watchTwinBrief, watchTwinReveal } from "./twin"; // lane 05 twin
 import "./interviewer.css";
 
 type Props = { sessionId: string; assessment: Assessment; problem: Omit<Problem, "hiddenTests">; candidateName: string; minutesLeft: () => number; onEnd?: () => void };
@@ -197,6 +197,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
     const stopTwin = watchTwinBrief(propsRef.current.sessionId, (questions, summary) => {
       if (brainRef.current !== brain) return;
       brain.setTwinQuestions(questions);
+      brain.enableTwinReveal();
       if (summary) convRef.current.sendContextualUpdate(
         `CANDIDATE BACKGROUND (from the LinkedIn profile they chose to share): ${summary}. ` +
         "Use it only to make your questions and explanations more relevant (e.g. relate to their stack or level). " +
@@ -204,8 +205,14 @@ function LiveInterviewer(p: Props & { agentId: string }) {
       );
     });
     let lastActivitySignal = 0;
+    let stopReveal = () => {};
     const unsub = subscribe((e) => {
       if (brainRef.current !== brain) return;
+      if (e.kind === "submit") { // lane 05: twin reveal question about their final code
+        stopReveal = watchTwinReveal(propsRef.current.sessionId, String(e.data.code ?? getCode()), (q) => {
+          if (brainRef.current === brain) brain.setTwinQuestions([q]);
+        });
+      }
       brain.handleEvent(e);
       if (e.kind === "code" && Date.now() - lastActivitySignal > 5_000) {
         lastActivitySignal = Date.now();
@@ -221,7 +228,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
         if (doneTalking || now - c.at > CLOSE_MAX_MS) finish();
       }
     }, 1_000);
-    return () => { stopTwin(); unsub(); clearInterval(iv); if (brainRef.current === brain) brainRef.current = null; };
+    return () => { stopTwin(); stopReveal(); unsub(); clearInterval(iv); if (brainRef.current === brain) brainRef.current = null; };
   }, [connected]);
 
   const speaking = conv.isSpeaking;
