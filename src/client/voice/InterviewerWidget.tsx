@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Assessment, Problem } from "../../shared/types";
 import { getCode, log, recent, subscribe } from "../timeline/bus";
 import { EVENT_PREFIX, currentCodeBlock, describeEvent, policyText } from "./format";
+import { InterviewerFace, type FaceLevels, type FaceState } from "./InterviewerFace";
 import { InterviewerBrain } from "./triggers";
 import { checkTwinAnswer, watchTwinBrief } from "./twin"; // lane 05 twin
 import "./interviewer.css";
@@ -40,6 +41,7 @@ function VoiceOff({ title, text, onEnd }: { title: string; text: string; onEnd?:
   return (
     <div className="oliv">
       <div className="oliv-head"><span className="oliv-dot off" /><b>{title}</b></div>
+      <div className="oliv-face"><InterviewerFace state="off" /></div>
       <div className="oliv-caption muted">{text}</div>
     </div>
   );
@@ -125,6 +127,11 @@ function LiveInterviewer(p: Props & { agentId: string }) {
   });
   const convRef = useRef(conv);
   convRef.current = conv;
+  // Real conversation audio for the face (read every animation frame; 0 when there is no session).
+  const faceLevels = useMemo<FaceLevels>(() => ({
+    output: () => convRef.current.getOutputVolume(),
+    input: () => (convRef.current.isMuted ? 0 : convRef.current.getInputVolume()),
+  }), []);
 
   function finish() {
     if (phaseRef.current === "ended") return;
@@ -208,6 +215,9 @@ function LiveInterviewer(p: Props & { agentId: string }) {
   }, [connected]);
 
   const speaking = conv.isSpeaking;
+  const faceState: FaceState =
+    phase === "error" ? "error" : phase === "ended" ? "ended" : phase === "connecting" ? "connecting" :
+    speaking ? "speaking" : conv.isMuted ? "muted" : "listening";
   const dot = phase === "error" ? "err" : phase === "ended" ? "off" : phase === "connecting" ? "wait" : speaking ? "speak" : conv.isMuted ? "muted" : "listen";
   const label =
     phase === "connecting" ? "Connecting…" :
@@ -228,6 +238,7 @@ function LiveInterviewer(p: Props & { agentId: string }) {
           </button>
         )}
       </div>
+      <div className="oliv-face"><InterviewerFace state={faceState} levels={faceLevels} /></div>
       {(caption || phase === "connecting" || phase === "live") && (
         <div className={`oliv-caption ${caption ? "" : "muted"}`}>
           {caption || (phase === "connecting" ? "Allow microphone access if your browser asks." : "The interviewer will speak shortly.")}
