@@ -11,7 +11,9 @@ let client: Anthropic | null = null;
 function getClient(): Anthropic | null {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
-  if (!client) client = new Anthropic({ apiKey: key, timeout: TIMEOUT_MS, maxRetries: 1 });
+  // Pin the base URL: agent shells may export ANTHROPIC_BASE_URL (a proxy), which the SDK
+  // would otherwise inherit and then reject our real key with 401. Override via ASSIST_BASE_URL.
+  if (!client) client = new Anthropic({ apiKey: key, baseURL: process.env.ASSIST_BASE_URL || "https://api.anthropic.com", timeout: TIMEOUT_MS, maxRetries: 1 });
   return client;
 }
 
