@@ -131,3 +131,4 @@
 .ol-table tr.click { cursor: pointer; }
 .ol-table tr.click:hover td { background: #f8f9fa; }
 .ol-rank { width: 28px; height: 28px; border-radius: 50%; background: #eef0f3; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+body:has(.ol) { margin: 0; }

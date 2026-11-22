@@ -87,7 +87,7 @@ function Pending({ data, onRetry }: { data: SessionPayload; onRetry: () => void 
       <div className="ol-center"><div style={{ maxWidth: 520 }}>
         <h2 style={{ marginBottom: 10 }}>The report couldn't be generated</h2>
         <p className="ol-muted">{data.reportError}</p>
-        <p className="ol-muted ol-small">Your session ({data.events.length} timeline events) is saved, so nothing is lost.</p>
+        <p className="ol-muted ol-small">Your session ({data.events.length} timeline event{data.events.length === 1 ? "" : "s"}) is saved, so nothing is lost.</p>
         <button className="ol-btn" onClick={onRetry} style={{ marginTop: 12 }}>Retry</button>
       </div></div>
     );

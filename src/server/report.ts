@@ -168,7 +168,7 @@ export async function generateReport(sessionId: string): Promise<Report | null> 
     const problem = assessment && getProblem(assessment.problemId);
     if (!assessment || !problem) throw new Error("Assessment or problem not found.");
     if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY is not set on the server, so the report can't be generated yet. Add it to .env.server and click Retry.");
+      throw new Error("ANTHROPIC_API_KEY is not set on the server, so the report can't be generated yet. Add it to .env.server (restart the server if it was running) and click Retry.");
     }
     store.setReportError(sessionId, null);
 
