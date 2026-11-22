@@ -5,6 +5,7 @@ import Editor from "@monaco-editor/react";
 import { api } from "wasp/client/api";
 import type { Assessment, Report, Session, TimelineEvent } from "../../shared/types";
 import { Shell, RecChip, ScoreBar, mmss, pct, scoreColor } from "../report/ui";
+import { InterviewLog } from "../report/InterviewLog";
 
 type ReportStatus = "ready" | "generating" | "pending" | "error" | "not_submitted";
 type SessionPayload = {
@@ -14,11 +15,12 @@ type SessionPayload = {
 
 const KIND_LABEL: Record<string, string> = {
   session_start: "start", code: "code", prompt: "prompt", ai_reply: "AI reply", insert: "AI insert", paste: "paste",
-  test_run: "tests", submit: "submit", interviewer_said: "interviewer", candidate_said: "candidate", flag: "flag", session_end: "end",
+  test_run: "tests", submit: "submit", interviewer_said: "interviewer", candidate_said: "candidate", flag: "flag", session_end: "end", interviewer_trigger: "trigger",
 };
 
 function eventText(e: TimelineEvent): string {
   const d = e.data as Record<string, any>;
+  if ((e.kind as string) === "interviewer_trigger") return `Interviewer prompted (${d.reason ?? "?"}): ${d.summary ?? ""}`;
   switch (e.kind) {
     case "code": return `Code snapshot · ${String(d.code ?? "").split("\n").length} lines`;
     case "insert": return `Inserted ${String(d.code ?? "").split("\n").length} lines of AI code`;
@@ -76,7 +78,14 @@ export function ReportPage() {
   if (!data) {
     return <Shell narrow><div className="ol-center"><div>{loadError ? <p>{loadError}</p> : <div className="ol-spinner" />}</div></div></Shell>;
   }
-  if (!data.report) return <Shell narrow><Pending data={data} onRetry={retry} /></Shell>;
+  if (!data.report) {
+    return (
+      <Shell narrow>
+        <Pending data={data} onRetry={retry} />
+        {data.reportStatus !== "not_submitted" && <InterviewLog session={data.session} assessment={data.assessment} events={data.events} />}
+      </Shell>
+    );
+  }
   return <Shell><ReportView data={data} report={data.report} /></Shell>;
 }
 
@@ -84,7 +93,7 @@ function Pending({ data, onRetry }: { data: SessionPayload; onRetry: () => void 
   const practice = data.assessment?.practice ?? true;
   if (data.reportStatus === "error") {
     return (
-      <div className="ol-center"><div style={{ maxWidth: 520 }}>
+      <div className="ol-center" style={{ minHeight: "40vh" }}><div style={{ maxWidth: 520 }}>
         <h2 style={{ marginBottom: 10 }}>The report couldn't be generated</h2>
         <p className="ol-muted">{data.reportError}</p>
         <p className="ol-muted ol-small">Your session ({data.events.length} timeline event{data.events.length === 1 ? "" : "s"}) is saved, so nothing is lost.</p>
@@ -96,7 +105,7 @@ function Pending({ data, onRetry }: { data: SessionPayload; onRetry: () => void 
     return <div className="ol-center"><div><h2>No submission yet</h2><p className="ol-muted">This session hasn't been submitted, so there's no report.</p></div></div>;
   }
   return (
-    <div className="ol-center"><div>
+    <div className="ol-center" style={{ minHeight: "40vh" }}><div>
       <div className="ol-spinner" />
       <h2 style={{ marginBottom: 8 }}>{practice ? "Writing your report…" : "Writing the report…"}</h2>
       <p className="ol-muted">Reviewing {data.events.length} timeline events: your prompts, the AI's replies, test runs and interviewer answers. Usually under 30 seconds.</p>
@@ -121,6 +130,12 @@ function ReportView({ data, report }: { data: SessionPayload; report: Report }) 
     setHl(best);
     itemRefs.current[best]?.scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => setHl((h) => (h === best ? null : h)), 2500);
+  };
+
+  const focusEvent = (i: number) => {
+    setHl(i);
+    itemRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => setHl((h) => (h === i ? null : h)), 2500);
   };
 
   // Replay: code snapshots over time (code + submit events), ending with the final code.
@@ -209,6 +224,8 @@ function ReportView({ data, report }: { data: SessionPayload; report: Report }) 
           {!report.evidence.length && <p className="ol-muted">No evidence items.</p>}
         </div>
       </div>
+
+      <InterviewLog session={session} assessment={assessment} events={events} onFocusEvent={focusEvent} />
 
       <div className="ol-grid2" style={{ marginTop: 16, alignItems: "start" }}>
         <div className="ol-card">
