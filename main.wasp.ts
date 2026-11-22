@@ -7,6 +7,7 @@ import { AssessmentSessionsPage } from "./src/client/pages/AssessmentSessionsPag
 import { listAssessments, createAssessment, getAssessment, listAssessmentSessions } from "./src/server/assessments" with { type: "ref" };
 import { createSession, postEvents, submitSession, getSession } from "./src/server/sessions" with { type: "ref" };
 import { apiMiddleware } from "./src/server/middleware" with { type: "ref" };
+import { serveClient } from "./src/server/serveClient" with { type: "ref" }; // deploy: one-service hosting
 import { assist } from "./src/server/assist" with { type: "ref" };
 import { twinBrief, twinCheck, twinGet, twinReveal } from "./src/server/twin" with { type: "ref" }; // lane 05 twin
 import { VoiceHarnessPage } from "./src/client/voice/VoiceHarnessPage" with { type: "ref" };
@@ -16,6 +17,7 @@ export default app({
   wasp: { version: "^0.26.1" },
   title: "Overwatch",
   head: ["<link rel='icon' href='/favicon.ico' />"],
+  server: { setupFn: serveClient },
   spec: [
     route("LandingRoute", "/", page(LandingPage)),
     route("TakeRoute", "/take/:assessmentId", page(TakePage)),
