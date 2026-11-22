@@ -16,7 +16,7 @@ COPY . .
 # Wasp refuses to build SQLite for production. We have no models (store is data/db.json), so the
 # provider is irrelevant at runtime; switch it only inside the image so local `wasp start` is unchanged.
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' schema.prisma
-RUN wasp build
+RUN wasp install && wasp build
 ARG RAILWAY_PUBLIC_DOMAIN
 ARG REACT_APP_ELEVENLABS_AGENT_ID
 RUN test -n "$RAILWAY_PUBLIC_DOMAIN" || (echo "ERROR: generate a public domain for this Railway service, then redeploy" && exit 1)
