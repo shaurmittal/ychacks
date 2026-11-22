@@ -8,6 +8,7 @@ import { listAssessments, createAssessment, getAssessment, listAssessmentSession
 import { createSession, postEvents, submitSession, getSession } from "./src/server/sessions" with { type: "ref" };
 import { apiMiddleware } from "./src/server/middleware" with { type: "ref" };
 import { assist } from "./src/server/assist" with { type: "ref" };
+import { VoiceHarnessPage } from "./src/client/voice/VoiceHarnessPage" with { type: "ref" };
 
 export default app({
   name: "oarlock",
@@ -20,6 +21,7 @@ export default app({
     route("ReportRoute", "/report/:sessionId", page(ReportPage)),
     route("CompanyRoute", "/company", page(CompanyPage)),
     route("AssessmentSessionsRoute", "/company/:assessmentId", page(AssessmentSessionsPage)),
+    route("VoiceHarnessRoute", "/dev/voice", page(VoiceHarnessPage)), // lane 03 dev harness
 
     // Default middleware enables CORS (needed for tunnels / separate client origin).
     apiNamespace("/api", { middlewareConfigFn: apiMiddleware }),
