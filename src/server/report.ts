@@ -212,12 +212,12 @@ export async function generateReport(sessionId: string): Promise<Report | null> 
 
 export const isGenerating = (sessionId: string) => inFlight.has(sessionId);
 
-/** Wait for the client to flush its final events (session_end) before generating, max ~8 s. */
+/** Wait for the client to flush its final events (session_end) before generating, max ~10 s. */
 export function scheduleReport(sessionId: string): void {
   const started = Date.now();
   const tick = () => {
     const ended = store.getEvents(sessionId).some((e) => e.kind === "session_end");
-    if ((ended && Date.now() - started > 1500) || Date.now() - started > 8000) void generateReport(sessionId);
+    if ((ended && Date.now() - started > 4000) || Date.now() - started > 10000) void generateReport(sessionId);
     else setTimeout(tick, 500);
   };
   setTimeout(tick, 500);
