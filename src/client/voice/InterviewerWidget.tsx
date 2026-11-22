@@ -11,16 +11,22 @@ import "./interviewer.css";
 type Props = { sessionId: string; assessment: Assessment; problem: Omit<Problem, "hiddenTests">; candidateName: string; minutesLeft: () => number; onEnd?: () => void };
 type Phase = "connecting" | "live" | "closing" | "ended" | "error";
 
-const AGENT_ID = String((import.meta.env as Record<string, unknown>).REACT_APP_ELEVENLABS_AGENT_ID ?? "").trim();
+const ENV_AGENT_ID = String((import.meta.env as Record<string, unknown>).REACT_APP_ELEVENLABS_AGENT_ID ?? "").trim();
+/** Env first; `?voiceAgent=<id>` is a fallback for testing before the env is set (agent IDs are public). */
+function agentId(): string {
+  if (ENV_AGENT_ID) return ENV_AGENT_ID;
+  try { return new URLSearchParams(window.location.search).get("voiceAgent")?.trim() ?? ""; } catch { return ""; }
+}
 const CLOSE_MAX_MS = 25_000;
 const CLOSE_QUIET_MS = 1_500;
 
 export function InterviewerWidget(props: Props) {
   if (!props.assessment.voice) return <VoiceOff title="Voice interviewer off" text="This assessment runs without a voice interviewer." onEnd={props.onEnd} />;
-  if (!AGENT_ID) return <VoiceOff title="Voice interviewer unavailable" text="No ElevenLabs agent is configured (REACT_APP_ELEVENLABS_AGENT_ID is empty). You can still complete the assessment." onEnd={props.onEnd} />;
+  const id = agentId();
+  if (!id) return <VoiceOff title="Voice interviewer unavailable" text="No ElevenLabs agent is configured (REACT_APP_ELEVENLABS_AGENT_ID is empty). You can still complete the assessment." onEnd={props.onEnd} />;
   return (
     <ConversationProvider>
-      <LiveInterviewer {...props} agentId={AGENT_ID} />
+      <LiveInterviewer {...props} agentId={id} />
     </ConversationProvider>
   );
 }
@@ -215,9 +221,11 @@ function LiveInterviewer(p: Props & { agentId: string }) {
           </button>
         )}
       </div>
-      <div className={`oliv-caption ${caption ? "" : "muted"}`}>
-        {caption || (phase === "connecting" ? "Allow microphone access if your browser asks." : "The interviewer will speak shortly.")}
-      </div>
+      {(caption || phase === "connecting" || phase === "live") && (
+        <div className={`oliv-caption ${caption ? "" : "muted"}`}>
+          {caption || (phase === "connecting" ? "Allow microphone access if your browser asks." : "The interviewer will speak shortly.")}
+        </div>
+      )}
       {phase === "error" && (
         <div className="oliv-err">
           <span>{error}</span>

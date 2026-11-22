@@ -109,3 +109,9 @@ Transcripts: every final agent line is logged as `interviewer_said {text}`, ever
 - Mount `<InterviewerWidget …/>` only after the start screen (name + consent + mic permission). It starts the call on mount and ends it on unmount.
 - Keep it mounted after Submit until `onEnd` fires (≤ ~25 s) so the goodbye is heard; or navigate immediately if you prefer (the call is ended cleanly on unmount).
 - If `assessment.voice === false` or no agent ID is configured, the widget renders a small "Voice interviewer off" note and does nothing.
+
+## Testing
+- `/dev/voice` (lane 03 harness, route appended to `main.wasp.ts`): start a session, then click Prompt AI / Insert AI code / Run tests / Jump to 5 min / Submit. They emit real timeline events through the bus, and the log shows `interviewer_said` / `candidate_said` / `flag` lines as they happen.
+- No agent ID in `.env.client` yet? Append `?voiceAgent=agent_xxx` to any page URL (the env value wins when set).
+- Mic needs `localhost` or HTTPS. Headless/automation browsers deny the mic, so the widget shows "Microphone access is blocked" + Retry (expected).
+- Trigger logic unit tests: `REACT_APP_API_URL=http://localhost:3001 npx vitest run src/client/voice`.

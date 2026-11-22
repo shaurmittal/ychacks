@@ -55,12 +55,12 @@ export function VoiceHarnessPage() {
 
   return (
     <main style={{ padding: 20, fontFamily: "system-ui", display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
-      <section>
+      <section style={{ minWidth: 0 }}>
         <h2 style={{ marginTop: 0 }}>Voice interviewer harness (dev)</h2>
         {!started ? <button onClick={start}>Start session</button> : (
           <>
             <textarea value={code} onChange={(e) => edit(e.target.value)} spellCheck={false}
-              style={{ width: "100%", height: 300, fontFamily: "ui-monospace, monospace", fontSize: 13, background: "#0d1117", color: "#e6edf3", padding: 10 }} />
+              style={{ width: "100%", boxSizing: "border-box", height: 300, fontFamily: "ui-monospace, monospace", fontSize: 13, background: "#0d1117", color: "#e6edf3", padding: 10 }} />
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0" }}>
               <button onClick={() => { log("prompt", { text: "write mergeBookings for me" }); log("ai_reply", { text: "Here's a solution", codeBlocks: [AI_CODE] }); }}>Prompt AI</button>
               <button onClick={() => { setCode(AI_CODE); log("insert", { code: AI_CODE }); log("code", { code: AI_CODE }); }}>Insert AI code</button>
