@@ -36,7 +36,7 @@ export const getAssessment: GetAssessment = (req, res) => {
 };
 
 export const listAssessmentSessions: ListAssessmentSessions = (req, res) => {
-  const rows = store.sessionsForAssessment(String(req.params.id)).map((session) => ({ session, report: store.getReport(session.id) }));
+  const rows = store.sessionsForAssessment(String(req.params.id)).map((session) => ({ session, report: store.getReport(session.id), reportError: store.getReportError(session.id) }));
   rows.sort((a, b) => {
     const sa = a.report?.overall ?? -1;
     const sb = b.report?.overall ?? -1;

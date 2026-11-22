@@ -5,7 +5,7 @@ import { api } from "wasp/client/api";
 import type { Assessment, Report, Session } from "../../shared/types";
 import { Shell, RecChip, pct, scoreColor } from "../report/ui";
 
-type Row = { session: Session; report?: Report };
+type Row = { session: Session; report?: Report; reportError?: string };
 
 export function AssessmentSessionsPage() {
   const { assessmentId } = useParams();
@@ -50,10 +50,10 @@ export function AssessmentSessionsPage() {
         ) : (
           <table className="ol-table">
             <thead>
-              <tr><th>#</th><th>Candidate</th><th>Overall</th><th>Verdict</th><th>Problem</th><th>AI usage</th><th>Code</th><th>Comms</th><th>Hidden tests</th><th>AI code</th><th>Time</th></tr>
+              <tr><th>#</th><th>Candidate</th><th>Overall</th><th>Verdict</th><th>Problem</th><th>AI usage</th><th>Code</th><th>Comms</th><th>Hidden tests</th><th>AI code</th><th>Time</th><th /></tr>
             </thead>
             <tbody>
-              {(rows ?? []).map(({ session, report }, i) => (
+              {(rows ?? []).map(({ session, report, reportError }, i) => (
                 <tr key={session.id} className="click" onClick={() => nav(`/report/${session.id}`)}>
                   <td><span className="ol-rank">{report ? i + 1 : "–"}</span></td>
                   <td><strong>{session.candidateName}</strong><div className="ol-muted ol-small">{new Date(session.startedAt).toLocaleString()}</div></td>
@@ -70,8 +70,13 @@ export function AssessmentSessionsPage() {
                       <td>{report.metrics.durationMin}m</td>
                     </>
                   ) : (
-                    <td colSpan={9} className="ol-muted ol-small">{session.endedAt ? "Report in progress…" : "In progress"}</td>
+                    <td colSpan={9} className="ol-muted ol-small">{reportError ? "Report failed · open it to retry (interview log still available)" : session.endedAt ? "Report in progress…" : "In progress"}</td>
                   )}
+                  <td style={{ whiteSpace: "nowrap", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                    <Link to={`/report/${session.id}`} className="ol-small">Report</Link>
+                    <span className="ol-muted"> · </span>
+                    <Link to={`/report/${session.id}#interview-log`} className="ol-small">Interview log</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
