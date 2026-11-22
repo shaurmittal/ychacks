@@ -59,8 +59,12 @@ class Twin:
         engine: Optional[PredictionEngine] = None,
         embedder: Optional[Embedder] = None,
         config: Optional[TwinConfig] = None,
+        corrections_header: Optional[str] = None,
     ) -> None:
         self.profile = profile
+        # Prompt file that introduces the corrections. The default says they came from this
+        # person; callers seeding a twin with other people's answers pass "cohort_header.txt".
+        self.corrections_header = corrections_header or "corrections_header.txt"
         self.corrections: list[Correction] = list(corrections)
         self.config = config or get_config()
         self.engine: PredictionEngine = engine or EDSLEngine(config=self.config)
@@ -85,7 +89,7 @@ class Twin:
                 note = f"\n  Their note: {c.note}" if c.note else ""
                 items.append(load_prompt("correction_item.txt").substitute(
                     question_text=text, actual_answer=c.actual_answer, note=note).rstrip())
-            corrections = load_prompt("corrections_header.txt").template + "\n".join(items)
+            corrections = load_prompt(self.corrections_header).template + "\n".join(items)
         return load_prompt("twin_instruction.txt").substitute(
             profile=render_profile(self.profile), corrections=corrections
         ).strip()
@@ -171,12 +175,14 @@ def build_twin(
     engine: Optional[PredictionEngine] = None,
     embedder: Optional[Embedder] = None,
     config: Optional[TwinConfig] = None,
+    corrections_header: Optional[str] = None,
 ) -> Twin:
     """Build a twin. ``profile`` may be a dict; it is validated (forbidden fields rejected)."""
     if not isinstance(profile, PersonProfile):
         profile = PersonProfile.model_validate(profile)
     corr = [c if isinstance(c, Correction) else Correction.model_validate(c) for c in corrections]
-    return Twin(profile, corr, engine=engine, embedder=embedder, config=config)
+    return Twin(profile, corr, engine=engine, embedder=embedder, config=config,
+                corrections_header=corrections_header)
 
 
 def _is_number(x) -> bool:

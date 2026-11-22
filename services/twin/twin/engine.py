@@ -115,7 +115,7 @@ class EDSLEngine:
         if agent is not None:
             job = job.by(agent)
         job = job.by(self._model(getattr(survey, "questions", [])))
-        mode = "local" if self.offline else self.config.execution
+        mode = "local" if self.offline else self.config.execution_mode
         return job.run(
             n=n,
             cache=Cache(),  # fresh in-memory cache: n samples are real, independent calls

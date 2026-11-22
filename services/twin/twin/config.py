@@ -43,6 +43,11 @@ class TwinConfig:
     def judge_model(self) -> str:
         return os.environ.get("TWIN_JUDGE_MODEL", self.model)
 
+    @property
+    def execution_mode(self) -> str:
+        """``engine.execution`` from config.toml, overridable with ``TWIN_EXECUTION``."""
+        return os.environ.get("TWIN_EXECUTION") or self.execution
+
     @classmethod
     def load(cls, path: str | Path | None = None) -> "TwinConfig":
         path = Path(path or os.environ.get("TWIN_CONFIG") or DEFAULT_CONFIG_PATH)

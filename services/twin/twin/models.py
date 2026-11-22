@@ -62,9 +62,10 @@ class PersonProfile(BaseModel):
 
     role_title: str
     seniority: str
-    industry: str
-    tenure_years: float = Field(ge=0, le=60)
-    region: str
+    # Optional so a short form (role + seniority) is enough; blank fields are left out of the prompt.
+    industry: Optional[str] = None
+    tenure_years: Optional[float] = Field(default=None, ge=0, le=60)
+    region: Optional[str] = None
     education_level: Optional[str] = None
     skills: list[str] = Field(default_factory=list)
 
