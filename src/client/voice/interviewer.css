@@ -31,21 +31,3 @@
   border: 1px solid #d0d7de; background: #f6f8fa; color: #1f2328; cursor: pointer;
 }
 .oliv-btn:hover { background: #eef1f4; }
-
-/* Interviewer face (InterviewerFace.tsx). Fixed box: no layout shift. */
-.oliv-face { display: flex; justify-content: center; padding: 2px 0; }
-.olf { flex: none; border-radius: 50%; transition: opacity 0.3s, filter 0.3s; }
-.olf svg { display: block; overflow: visible; }
-.olf-ring { stroke: #afb8c1; transform-origin: center; transform-box: fill-box; transition: stroke 0.25s; }
-.olf-listening .olf-ring { stroke: #1a7f37; }
-.olf-speaking .olf-ring { stroke: #2f5bea; }
-.olf-muted .olf-ring { stroke: #bf8700; }
-.olf-connecting .olf-ring { stroke: #bf8700; stroke-dasharray: 8 6; animation: olf-spin 2.4s linear infinite; }
-.olf-ended, .olf-error, .olf-off { opacity: 0.5; filter: grayscale(1); }
-.olf-error .olf-ring { stroke: #cf222e; }
-@keyframes olf-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .olf-connecting .olf-ring { animation: none; }
-  .olf, .olf-ring { transition: none; }
-  .oliv-dot.speak, .oliv-dot.wait { animation: none; }
-}
