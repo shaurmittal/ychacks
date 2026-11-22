@@ -2,6 +2,8 @@
 
 **The first-round interviewer you'd hire for the AI era.**
 
+**Live demo: https://ychacks-production.up.railway.app**
+
 Engineers code with AI every day, but most interviews still pretend AI doesn't exist. Overwatch runs a company's first-round coding assessment *with* AI allowed, and measures what actually matters now: how well a candidate builds with it.
 
 A candidate solves a coding problem in the browser with an AI assistant. A **voice interviewer** (ElevenLabs) watches what they do and asks pointed questions about their real code and AI usage. At the end, the company gets an **evidence-backed report** and the full interview log.
@@ -90,7 +92,7 @@ flowchart TB
 **Requirements:** Node.js ≥ 24.22.1, Wasp 0.26 (`npm i -g @wasp.sh/wasp-cli@latest`), an Anthropic API key, an ElevenLabs agent. Optional: Python for the twin service, `cloudflared` for a public link.
 
 ```bash
-git clone <repo-url> && cd <repo>
+git clone https://github.com/shaurmittal/ychacks.git && cd ychacks
 
 # Keys (see the *.example files for exact variable names)
 #   .env.server  → Anthropic API key
@@ -100,7 +102,8 @@ git clone <repo-url> && cd <repo>
 wasp start
 ```
 
-- **Public HTTPS link** (needed for other people's microphones): `scripts/tunnel.sh <clientPort> <serverPort>`
+- **Deploy:** `railway up --ci` (builds the root `Dockerfile`; set `ANTHROPIC_API_KEY` and `REACT_APP_ELEVENLABS_AGENT_ID`, mount a volume at `/app/data`)
+- **Public HTTPS link from a laptop** (needed for other people's microphones): `scripts/tunnel.sh <clientPort> <serverPort>`
 - **Push the interviewer prompt to ElevenLabs:** `node scripts/sync-voice-agent.mjs` (the prompt lives in `docs/VOICE_INTERVIEWER.md`)
 - **Twin service (optional):** `cd twin-py && .venv/bin/python -m twin serve --port <port>`. Without it, interviews skip the warm-up questions.
 
@@ -146,7 +149,7 @@ scripts/                     tunnel.sh, sync-voice-agent.mjs
 | Profiles | **Fiber AI** |
 | Editor | Monaco |
 | Storage | In-memory store saved to `data/db.json` |
-| Public link | Cloudflare tunnel |
+| Hosting | **Railway** (one service: Wasp server also serves the client; `Dockerfile`) |
 | How we built it | **Codevisor** |
 
 ## How we built it with Codevisor
