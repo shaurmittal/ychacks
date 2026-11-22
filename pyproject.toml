@@ -1,0 +1,24 @@
+[project]
+name = "twin"
+version = "0.1.0"
+description = "Predict-then-probe twin: predicts a participant's interview answers (EDSL) and scores surprise."
+requires-python = ">=3.11"
+dependencies = ["edsl>=1.0.9", "pydantic>=2"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+fiber = ["fiberai"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["twin"]
+
+[tool.setuptools.package-data]
+twin = ["config.toml", "prompts/*.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::pydantic.PydanticDeprecatedSince20"]
