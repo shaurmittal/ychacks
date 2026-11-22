@@ -191,7 +191,8 @@ export async function generateReport(sessionId: string): Promise<Report | null> 
     const finalCode = finalCodeOf(events, session, sub);
     const prompt = buildPrompt(assessment, problem, session, events, metrics, finalCode, sub);
 
-    const client = new Anthropic();
+    // Pin the base URL: agent shells may export ANTHROPIC_BASE_URL (a proxy) that rejects our key.
+    const client = new Anthropic({ baseURL: process.env.REPORT_BASE_URL || "https://api.anthropic.com" });
     const draft = (await callModel(client, prompt, false)) ?? (await callModel(client, prompt, true));
     if (!draft) throw new Error("The report model returned invalid JSON twice.");
 
