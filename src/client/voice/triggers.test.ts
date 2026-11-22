@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TimelineEvent, TimelineKind } from "../../shared/types";
 import { EVENT_PREFIX } from "./format";
-import { InterviewerBrain, QUESTION_GAP_MS, changedLines, isTrivialLine, lineRanges, type TriggerReason } from "./triggers";
+import { InterviewerBrain, QUESTION_GAP_MS, TWIN_START_DELAY_MS, changedLines, isTrivialLine, lineRanges, type TriggerReason } from "./triggers";
 
 const STARTER = "/** @param {object[]} bookings */\nfunction mergeBookings(bookings) {\n  \n}";
 
@@ -232,7 +232,9 @@ describe("twin questions (lane 05)", () => {
   it("asks each twin question once, spaced by the question gap, with its id for check_answer", () => {
     const s = setup();
     s.brain.setTwinQuestions(QS);
-    s.advance(2_000);
+    s.advance(TWIN_START_DELAY_MS - 5_000);
+    expect(s.trig).toHaveLength(0); // opening is left alone
+    s.advance(7_000);
     expect(s.trig).toHaveLength(1);
     expect(s.trig[0]).toContain(EVENT_PREFIX);
     expect(s.trig[0]).toContain('question_id "approach"');
@@ -251,7 +253,7 @@ describe("twin questions (lane 05)", () => {
     const s = setup();
     s.setSpeaking(true);
     s.brain.setTwinQuestions(QS);
-    s.advance(5_000);
+    s.advance(TWIN_START_DELAY_MS + 5_000);
     expect(s.trig).toHaveLength(0);
     s.setSpeaking(false);
     s.advance(2_000);

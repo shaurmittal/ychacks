@@ -6,6 +6,7 @@ import type { TestResult, TimelineEvent } from "../../shared/types";
 import { EVENT_PREFIX, clip, codeBlock, currentCodeBlock, describeResult, mmss } from "./format";
 
 export const QUESTION_GAP_MS = 75_000; // min gap between triggered questions
+export const TWIN_START_DELAY_MS = 60_000; // lane 05: leave the opening (greeting + intro) alone
 export const INSERT_DELAY_MS = 15_000; // give them a moment to test after inserting
 export const CANDIDATE_TALK_GRACE_MS = 8_000;
 export const CODE_SNAPSHOT_GAP_MS = 60_000;
@@ -295,7 +296,7 @@ export class InterviewerBrain {
         this.enqueue({ kind: "insert", build: () => this.insertTrigger(ins) });
       }
 
-      if (!this.pending && this.twinQueue.length && now - this.lastQuestionAt >= QUESTION_GAP_MS) {
+      if (!this.pending && this.twinQueue.length && now - this.start >= TWIN_START_DELAY_MS && now - this.lastQuestionAt >= QUESTION_GAP_MS) {
         this.enqueue({ kind: "twin", build: () => this.twinTrigger() });
       }
 

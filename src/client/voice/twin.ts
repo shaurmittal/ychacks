@@ -43,3 +43,16 @@ export async function checkTwinAnswer(sessionId: string, params: Record<string, 
 export function startTwinBrief(sessionId: string, linkedinUrl?: string): void {
   api.post("api/twin/brief", { json: { sessionId, linkedinUrl: linkedinUrl?.trim() || undefined }, timeout: 15_000 }).catch(() => {});
 }
+
+/** Waits up to `maxMs` for the LinkedIn profile lookup and returns the intro line, or null (baseline / slow / error). */
+export async function getTwinIntro(sessionId: string, maxMs = 6_000): Promise<string | null> {
+  const until = Date.now() + maxMs;
+  while (Date.now() < until) {
+    try {
+      const r = await api.post("api/twin/brief", { json: { sessionId }, timeout: 4_000 }).json<{ profileResolved: boolean; intro: string | null }>();
+      if (r.profileResolved) return r.intro;
+    } catch { return null; }
+    await new Promise((res) => setTimeout(res, 700));
+  }
+  return null;
+}

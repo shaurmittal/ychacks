@@ -6,12 +6,14 @@ import type { Assessment, Problem } from "../../shared/types";
 import { getCode, log, recent, subscribe } from "../timeline/bus";
 import { EVENT_PREFIX, currentCodeBlock, describeEvent, policyText } from "./format";
 import { InterviewerBrain } from "./triggers";
-import { checkTwinAnswer, watchTwinBrief } from "./twin"; // lane 05 twin
+import { checkTwinAnswer, getTwinIntro, watchTwinBrief } from "./twin"; // lane 05 twin
 import "./interviewer.css";
 
 type Props = { sessionId: string; assessment: Assessment; problem: Omit<Problem, "hiddenTests">; candidateName: string; minutesLeft: () => number; onEnd?: () => void };
 type Phase = "connecting" | "live" | "closing" | "ended" | "error";
 
+// Spoken at the end of the first message when there is no LinkedIn intro (keep in sync with docs/VOICE_INTERVIEWER.md).
+const DEFAULT_INTRO_LINE = "You can use the AI assistant on the right, and I'll occasionally ask about your code and how you're using the AI; feel free to ask me clarifying questions anytime. Whenever you're ready, go ahead and start.";
 const ENV_AGENT_ID = String((import.meta.env as Record<string, unknown>).REACT_APP_ELEVENLABS_AGENT_ID ?? "").trim();
 /** Env first; `?voiceAgent=<id>` is a fallback for testing before the env is set (agent IDs are public). */
 function agentId(): string {
@@ -141,7 +143,11 @@ function LiveInterviewer(p: Props & { agentId: string }) {
     setError(null);
     setPhaseBoth("connecting");
     startMsRef.current = sessionStartMs();
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      // Lane 05: personalised opening from the candidate's LinkedIn (if they gave one); default otherwise.
+      const intro = await getTwinIntro(propsRef.current.sessionId);
+      if (cancelled) return;
       convRef.current.startSession({
         agentId: p.agentId,
         connectionType: attempt % 2 === 0 ? "webrtc" : "websocket", // retry alternates transport
@@ -154,10 +160,12 @@ function LiveInterviewer(p: Props & { agentId: string }) {
           ai_policy: assessment.aiPolicy,
           ai_policy_text: policyText(assessment.aiPolicy),
           duration_min: assessment.durationMin,
+          intro_line: intro || DEFAULT_INTRO_LINE,
         },
       });
     }, 0);
     return () => {
+      cancelled = true;
       clearTimeout(timer);
       brainRef.current = null;
       try { convRef.current.endSession(); } catch { /* not started */ }

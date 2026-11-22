@@ -21,7 +21,18 @@ type Brief = {
   error?: string;
   startedAt: number;
   profileSource: "linkedin" | "baseline";
+  profileResolved: boolean;
+  intro?: string; // spoken in the agent's first message when the profile came from LinkedIn
 };
+
+function introFrom(p: Record<string, unknown>): string {
+  const role = String(p.role_title ?? "").trim();
+  const industry = String(p.industry ?? "").trim();
+  if (!role || role === "Professional") return "";
+  const article = /^[aeiou]/i.test(role) ? "an" : "a";
+  const where = industry && industry !== "Unknown" ? ` in ${industry.toLowerCase()}` : "";
+  return `I had a quick look at your LinkedIn: you work as ${article} ${role}${where}, nice to meet you. Before we start, give me a quick ten-second intro: what are you working on these days?`;
+}
 
 // Baseline twin used when the candidate gives no LinkedIn URL (or Fiber finds no match).
 // With a LinkedIn URL, Fiber AI returns role/seniority/industry/tenure/region/education/skills only.
@@ -74,11 +85,13 @@ function startBrief(sessionId: string, linkedinUrl?: string): Brief | null {
   const assessment = session && getAssessment(session.assessmentId);
   const problem = assessment && getProblem(assessment.problemId);
   if (!problem) return null;
-  const brief: Brief = { status: "pending", guide: guideFor(problem.title), predictions: [], answers: [], startedAt: Date.now(), profileSource: "baseline" };
+  const brief: Brief = { status: "pending", guide: guideFor(problem.title), predictions: [], answers: [], startedAt: Date.now(), profileSource: "baseline", profileResolved: false };
   briefs.set(sessionId, brief);
   profileFor(linkedinUrl)
     .then(({ profile, source }) => {
       brief.profileSource = source;
+      brief.profileResolved = true;
+      if (source === "linkedin") brief.intro = introFrom(profile) || undefined;
       return twinPost<{ predictions: Prediction[] }>("/predict", { profile, guide: { questions: brief.guide } }, 180_000);
     })
     .then((r) => { brief.predictions = r.predictions; brief.status = "ready"; console.log(`[twin] ${sessionId}: brief ready (${brief.profileSource})`); })
@@ -86,7 +99,7 @@ function startBrief(sessionId: string, linkedinUrl?: string): Brief | null {
   return brief;
 }
 
-const publicBrief = (b: Brief) => ({ status: b.status, guide: b.guide, error: b.error, profileSource: b.profileSource, answered: b.answers.map((a) => a.questionId) });
+const publicBrief = (b: Brief) => ({ status: b.status, guide: b.guide, error: b.error, profileSource: b.profileSource, profileResolved: b.profileResolved || b.status !== "pending", intro: b.intro ?? null, answered: b.answers.map((a) => a.questionId) });
 
 // POST /api/twin/brief {sessionId, linkedinUrl?} -> {status, guide, profileSource}  (starts prediction on first call)
 export const twinBrief: TwinBrief = (req, res) => {
