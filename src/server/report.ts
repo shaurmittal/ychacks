@@ -18,7 +18,7 @@ Every strength and concern must be backed by evidence with a timestamp (mm:ss) a
 Recommendation from overall: >= 4.3 strong_yes, >= 3.5 yes, >= 2.7 lean_no, else no.
 Output JSON only, matching the schema (the server adds metrics).`;
 
-const score = { type: "integer", minimum: 1, maximum: 5 };
+const score = { type: "integer", description: "1-5" }; // range enforced in validate()
 const strArr = { type: "array", items: { type: "string" } };
 const SCHEMA = {
   type: "object",
@@ -117,9 +117,11 @@ type Draft = Omit<Report, "sessionId" | "generatedAt" | "metrics">;
 function validate(x: unknown): Draft | null {
   const r = x as Draft;
   if (!r || typeof r !== "object" || !r.scores) return null;
-  const s = r.scores;
-  const ok = (n: unknown) => typeof n === "number" && n >= 1 && n <= 5;
-  if (![s.problemSolving, s.aiUsage, s.codeQuality, s.communication].every(ok)) return null;
+  const ok = (n: unknown) => typeof n === "number" && Number.isFinite(n);
+  const raw = r.scores;
+  if (![raw.problemSolving, raw.aiUsage, raw.codeQuality, raw.communication].every(ok)) return null;
+  const clamp = (n: number) => Math.min(5, Math.max(1, Math.round(n)));
+  const s = { problemSolving: clamp(raw.problemSolving), aiUsage: clamp(raw.aiUsage), codeQuality: clamp(raw.codeQuality), communication: clamp(raw.communication) };
   if (typeof r.summary !== "string" || !Array.isArray(r.strengths) || !Array.isArray(r.concerns)) return null;
   if (!Array.isArray(r.evidence) || !Array.isArray(r.aiUsageNotes)) return null;
   // Overall + recommendation are derived deterministically so they always follow the rubric.
@@ -127,7 +129,7 @@ function validate(x: unknown): Draft | null {
   const recommendation: Report["recommendation"] =
     overall >= 4.3 ? "strong_yes" : overall >= 3.5 ? "yes" : overall >= 2.7 ? "lean_no" : "no";
   return {
-    ...r, overall, recommendation,
+    ...r, scores: s, overall, recommendation,
     evidence: r.evidence.filter((e) => e && typeof e.at === "string" && typeof e.quote === "string"),
   };
 }
@@ -139,18 +141,29 @@ function parseJson(text: string): unknown {
   try { return JSON.parse(text.slice(start, end + 1)); } catch { return null; }
 }
 
+let useSchema = true; // flips off if the API rejects the JSON-schema format
+
 async function callModel(client: Anthropic, prompt: string, retry: boolean): Promise<Draft | null> {
-  const msg = await client.messages.create(
+  const create = (schema: boolean) => client.messages.create(
     {
       model: MODEL,
       max_tokens: 8000,
       // Sonnet 5.5 rejects non-default temperature, so the spec's 0.2 is not sent; low effort keeps it < 30 s.
-      output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
+      output_config: schema ? { effort: "low", format: { type: "json_schema", schema: SCHEMA } } : { effort: "low" },
       system: SYSTEM,
       messages: [{ role: "user", content: retry ? `${prompt}\n\nReturn valid JSON only.` : prompt }],
     },
     { timeout: 60_000, maxRetries: 1 },
   );
+  let msg: Anthropic.Message;
+  try {
+    msg = await create(useSchema);
+  } catch (e) {
+    if (!(useSchema && e instanceof Anthropic.BadRequestError)) throw e;
+    console.warn("[report] JSON-schema output rejected, retrying without it:", e.message);
+    useSchema = false;
+    msg = await create(false);
+  }
   if (msg.stop_reason === "refusal") throw new Error("The report model declined this request.");
   const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
   return validate(parseJson(text));
